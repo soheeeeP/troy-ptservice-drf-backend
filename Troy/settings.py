@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/3.2/ref/settings/
 """
 import os, json
 from pathlib import Path
+from datetime import timedelta
 from django.core.exceptions import ImproperlyConfigured
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -54,7 +55,29 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django.contrib.sites',
+
+    # apps
+    'users',
+    'quests',
+    'centers',
+
+    # django-restframework-simplejwt
+    'rest_framework',
+    'rest_framework_simplejwt',
+
+    # dj-rest-auth (login/register)
+    'dj_rest_auth',
+    'dj_rest_auth.registration',
+
+    # django-allauth (social login)
+    # 'allauth',
+    # 'allauth.account',
+    # 'allauth.socialaccount',
 ]
+
+AUTH_USER_MODEL = 'users.UserProfile'
+SITE_ID = 1
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -87,6 +110,27 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'Troy.wsgi.application'
 
+# Rest-Framework
+# https://www.django-rest-framework.org/
+
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        # session authentication
+        'rest_framework.authentication.SessionAuthentication',
+        # use JWT instead of token-based authentication
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+        'dj_rest_auth.jwt_auth.JWTCookieAuthentication',
+    )
+}
+
+REST_USE_JWT = True
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(hours=2),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
+    'ROTATE_REFRESH_TOKENS': False,
+}
+JWT_AUTH_COOKIE = 'troy-auth'
+JWT_AUTH_REFRESH_COOKIE = 'troy-refresh-token'
 
 # Database
 # https://docs.djangoproject.com/en/3.2/ref/settings/#databases
