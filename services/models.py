@@ -1,13 +1,9 @@
 from django.db import models
+from django.core.validators import MinValueValidator, MaxValueValidator
 
 # Create your models here.
 
 class Service(models.Model):
-    care_service = models.ForeignKey(
-        'OnlineService',
-        on_delete = models.CASCADE,
-        verbose_name='온라인 서비스'
-    )
     trainer = models.ForeignKey(
         'TrainerProfile',
         on_delete = models.CASCADE,
@@ -18,11 +14,14 @@ class Service(models.Model):
         on_delete = models.CASCADE, 
         verbose_name='트레이니'
     )
-    start_date = models.DateField()
+    start_date = models.DateField(
+        auto_now_add = True
+    )
     end_date = models.DateField(
         null = True
     )
-    term = models.PositiveIntegerField(
+    term = models.PositiveSmallIntegerField(
+        default=0,
         verbose_name='연장횟수'
     )
 
@@ -32,11 +31,10 @@ class Service(models.Model):
         verbose_name_plural = verbose_name
 
 class OnlineService(models.Model):
-    quest = models.ForeignKey(
-        'Quest',
-        on_delete= models.CASCADE,
-        null = True,
-        verbose_name='온라인 서비스'
+    service = models.ForeignKey(
+        'OnlineService',
+        on_delete = models.CASCADE,
+        verbose_name='서비스'
     )
     evaluation = models.OneToOneField(
         'Evaluation',
@@ -46,11 +44,6 @@ class OnlineService(models.Model):
     )
     start_date = models.DateField()
     end_date = models.DateField()
-    offline_service = models.ForeignKey(
-        'OfflineService',
-        on_delete = models.CASCADE,
-        null = True
-    )
     goal = models.OneToOneField(
         'Goal',
         on_delete = models.CASCADE
@@ -62,6 +55,11 @@ class OnlineService(models.Model):
         verbose_name_plural = verbose_name
 
 class OfflineService(models.Model):
+    service = models.ForeignKey(
+        'Service',
+        on_delete = models.CASCADE,
+        verbose_name = '서비스'
+    )
     date = models.DateTimeField(
         verbose_name='오프라인 수업일자'
     )
@@ -73,13 +71,16 @@ class OfflineService(models.Model):
         verbose_name_plural = verbose_name
 
 class Evaluation(models.Model):
-    communication = models.PositiveSmallIntegerField(
+    communication = models.IntegerField(
+        validators=[MinValueValidator(0), MaxValueValidator(5)],
         verbose_name='커뮤니케이션 만족도'
     )
-    care = models.PositiveSmallIntegerField(
+    care = models.IntegerField(
+        validators=[MinValueValidator(0), MaxValueValidator(5)],
         verbose_name='서비스 만족도'
     )
-    total_rate = models.PositiveSmallIntegerField(
+    total_rate = models.IntegerField(
+        validators=[MinValueValidator(0), MaxValueValidator(5)],
         verbose_name= '종합 추천도'
     )
     text = models.TextField(
@@ -95,7 +96,7 @@ class Evaluation(models.Model):
 
 class Goal(models.Model):
     due_date = models.DateField()
-    tex_goal = models.CharField(
+    text_goal = models.CharField(
         max_length = 20 
     )
 

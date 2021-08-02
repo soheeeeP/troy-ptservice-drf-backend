@@ -105,7 +105,8 @@ class TraineeProfile(models.Model):
         related_name='trainee_profile'
     )
     purpose = models.ManyToManyField(
-        'PurposeTag',
+        'Tag',
+        through='PurposeTag',
         on_delete = models.CASCADE,
     )      # purpose_tag
 
@@ -117,7 +118,8 @@ class TraineeProfile(models.Model):
 
 class TrainerProfile(models.Model):
     specialty = models.ManyToManyField(
-        'SpecialtyTag',
+        'Tag',
+        through='SpecialtyTag',
         on_delete = models.CASCADE
     )    # specialty_tag
     years_career = models.PositiveSmallIntegerField(

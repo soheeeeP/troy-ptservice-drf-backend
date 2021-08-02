@@ -1,9 +1,15 @@
 from django.db import models
+from django.db.models.enums import Choices
 
 # Create your models here.
 class HashTag(models.Model):
+    TAG_CHOICES = Choices(
+        ('specialty', '전문성'),
+        ('purpose', '목적'),
+        ('goal', '목표')
+    )
     tag_type = models.CharField(
-        max_length = 20,
+        choices=TAG_CHOICES,
         verbose_name = '태그 종류'
     )
     tag_content = models.CharField(
