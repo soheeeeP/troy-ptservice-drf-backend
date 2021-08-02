@@ -93,8 +93,8 @@ class BodyInfo(models.Model):
     )
 
     class Meta:
-        db_table = '체형정보'
-        verbose_name = 'bodyinfo'
+        db_table = 'bodyinfo'
+        verbose_name = '체형정보'
         verbose_name_plural = verbose_name
 
 
@@ -104,7 +104,10 @@ class TraineeProfile(models.Model):
         on_delete=models.CASCADE,
         related_name='trainee_profile'
     )
-    # purpose = models.ManyToManyField()      # purpose_tag
+    purpose = models.ManyToManyField(
+        'PurposeTag',
+        on_delete = models.CASCADE,
+    )      # purpose_tag
 
     class Meta:
         db_table = 'trainee_profile'
@@ -113,7 +116,10 @@ class TraineeProfile(models.Model):
 
 
 class TrainerProfile(models.Model):
-    # specialty = models.ManyToManyField()    # specialty_tag
+    specialty = models.ManyToManyField(
+        'SpecialtyTag',
+        on_delete = models.CASCADE
+    )    # specialty_tag
     years_career = models.PositiveSmallIntegerField(
         default=0,
         validators=[MinValueValidator(0), MaxValueValidator(10)]
