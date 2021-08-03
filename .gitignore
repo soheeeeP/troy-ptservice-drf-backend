@@ -8,4 +8,4 @@ local_settings.py
 db.sqlite3
 myvenv/
 .idea
-key.json
+.config/*
