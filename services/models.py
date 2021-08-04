@@ -1,24 +1,23 @@
 from django.db import models
 from django.core.validators import MinValueValidator, MaxValueValidator
 
-# Create your models here.
 
 class Service(models.Model):
     trainer = models.ForeignKey(
-        'TrainerProfile',
-        on_delete = models.CASCADE,
-        verbose_name = '트레이너'
+        'users.TrainerProfile',
+        on_delete=models.CASCADE,
+        verbose_name='트레이너'
     )
     trainee = models.ForeignKey(
-        'TraineeProfile',
-        on_delete = models.CASCADE, 
+        'users.TraineeProfile',
+        on_delete=models.CASCADE,
         verbose_name='트레이니'
     )
     start_date = models.DateField(
-        auto_now_add = True
+        auto_now_add=True
     )
     end_date = models.DateField(
-        null = True
+        null=True
     )
     term = models.PositiveSmallIntegerField(
         default=0,
@@ -30,23 +29,24 @@ class Service(models.Model):
         verbose_name = "서비스"
         verbose_name_plural = verbose_name
 
+
 class OnlineService(models.Model):
     service = models.ForeignKey(
         'OnlineService',
-        on_delete = models.CASCADE,
+        on_delete=models.CASCADE,
         verbose_name='서비스'
     )
     evaluation = models.OneToOneField(
         'Evaluation',
         on_delete=models.CASCADE,
-        null = True,
+        null=True,
         verbose_name='평가'
     )
     start_date = models.DateField()
     end_date = models.DateField()
     goal = models.OneToOneField(
         'Goal',
-        on_delete = models.CASCADE
+        on_delete=models.CASCADE
     )
 
     class Meta:
@@ -54,11 +54,12 @@ class OnlineService(models.Model):
         verbose_name = "온라인 서비스"
         verbose_name_plural = verbose_name
 
+
 class OfflineService(models.Model):
     service = models.ForeignKey(
         'Service',
-        on_delete = models.CASCADE,
-        verbose_name = '서비스'
+        on_delete=models.CASCADE,
+        verbose_name='서비스'
     )
     date = models.DateTimeField(
         verbose_name='오프라인 수업일자'
@@ -69,6 +70,7 @@ class OfflineService(models.Model):
         db_table = 'offline_service'
         verbose_name = "오프라인 서비스"
         verbose_name_plural = verbose_name
+
 
 class Evaluation(models.Model):
     communication = models.IntegerField(
@@ -81,10 +83,10 @@ class Evaluation(models.Model):
     )
     total_rate = models.IntegerField(
         validators=[MinValueValidator(0), MaxValueValidator(5)],
-        verbose_name= '종합 추천도'
+        verbose_name='종합 추천도'
     )
     text = models.TextField(
-        null = True,
+        null=True,
         verbose_name='텍스트 평가'
     )
 
@@ -97,7 +99,7 @@ class Evaluation(models.Model):
 class Goal(models.Model):
     due_date = models.DateField()
     text_goal = models.CharField(
-        max_length = 20 
+        max_length=20
     )
 
     class Meta:

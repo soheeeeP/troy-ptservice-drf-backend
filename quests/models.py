@@ -1,12 +1,12 @@
 from django.db import models
-from django.db.models.deletion import SET_NULL
 
 
 class Quest(models.Model):
     online_service = models.ForeignKey(
-        'OnlineService',
-        on_delete = models.CASCADE,
-        verbose_name = '온라인 서비스'
+        "services.OnlineService",
+        on_delete=models.CASCADE,
+        default=True,
+        verbose_name='온라인 서비스'
     )
     meal_planner = models.OneToOneField(
         'MealPlanner',
@@ -16,10 +16,8 @@ class Quest(models.Model):
     )
     workout = models.ManyToManyField(
         'Workout',
-        on_delete = models.SET_NULL,
-        null=True,
         verbose_name='운동퀘스트',
-        
+
     )
     quest_feedback = models.TextField()
 
