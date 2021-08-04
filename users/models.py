@@ -1,4 +1,5 @@
 import datetime
+from tags.models import HashTag, PurposeTag, SpecialtyTag
 
 from django.db import models
 from django.contrib.auth.models import AbstractUser
@@ -8,7 +9,7 @@ from model_utils import Choices
 
 
 class UserProfile(AbstractUser):
-    YEAR_CHOICES = [(r,r) for r in range(1984, datetime.date.today().year+1)]
+    YEAR_CHOICES = [(r, r) for r in range(1984, datetime.date.today().year+1)]
     GENDER_CHOICES = Choices(
         ('male', '남성'),
         ('female', '여성')
@@ -93,8 +94,8 @@ class BodyInfo(models.Model):
     )
 
     class Meta:
-        db_table = '체형정보'
-        verbose_name = 'bodyinfo'
+        db_table = 'bodyinfo'
+        verbose_name = '체형정보'
         verbose_name_plural = verbose_name
 
 
@@ -104,7 +105,10 @@ class TraineeProfile(models.Model):
         on_delete=models.CASCADE,
         related_name='trainee_profile'
     )
-    # purpose = models.ManyToManyField()      # purpose_tag
+    purpose = models.ManyToManyField(
+        HashTag,
+        through="tags.PurposeTag",
+    )
 
     class Meta:
         db_table = 'trainee_profile'
@@ -113,7 +117,10 @@ class TraineeProfile(models.Model):
 
 
 class TrainerProfile(models.Model):
-    # specialty = models.ManyToManyField()    # specialty_tag
+    specialty = models.ManyToManyField(
+        HashTag,
+        through='tags.SpecialtyTag',
+    )
     years_career = models.PositiveSmallIntegerField(
         default=0,
         validators=[MinValueValidator(0), MaxValueValidator(10)]
