@@ -1,5 +1,6 @@
 from django.db import models
 
+
 class HashTag(models.Model):
     TAG_CHOICES = [
         ('specialty', '전문성'),
@@ -8,6 +9,7 @@ class HashTag(models.Model):
     ]
     tag_type = models.CharField(
         choices=TAG_CHOICES,
+        default=TAG_CHOICES[0],
         max_length=20,
         verbose_name='태그 종류'
     )
@@ -23,11 +25,11 @@ class HashTag(models.Model):
 
 
 class SpecialtyTag(models.Model):
-    trainer_id = models.ForeignKey(
+    trainer = models.ForeignKey(
         "users.TrainerProfile",
         on_delete=models.CASCADE
     )
-    tag_id = models.ForeignKey(
+    tag = models.ForeignKey(
         'HashTag',
         on_delete=models.CASCADE
     )
@@ -39,11 +41,11 @@ class SpecialtyTag(models.Model):
 
 
 class PurposeTag(models.Model):
-    trainee_id = models.ForeignKey(
+    trainee = models.ForeignKey(
         "users.TraineeProfile",
         on_delete=models.CASCADE
     )
-    tag_id = models.ForeignKey(
+    tag = models.ForeignKey(
         'HashTag',
         on_delete=models.CASCADE
     )
@@ -55,11 +57,11 @@ class PurposeTag(models.Model):
 
 
 class GoalTag(models.Model):
-    goal_id = models.ForeignKey(
+    goal = models.ForeignKey(
         "services.Goal",
         on_delete=models.CASCADE
     )
-    tag_id = models.ForeignKey(
+    tag = models.ForeignKey(
         'HashTag',
         on_delete=models.CASCADE
     )

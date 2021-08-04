@@ -32,7 +32,7 @@ class Service(models.Model):
 
 class OnlineService(models.Model):
     service = models.ForeignKey(
-        'OnlineService',
+        'Service',
         on_delete=models.CASCADE,
         verbose_name='서비스'
     )
