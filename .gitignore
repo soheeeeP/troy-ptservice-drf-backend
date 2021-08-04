@@ -10,3 +10,4 @@ myvenv/
 .idea
 key.json
 venv/
+.config/*
