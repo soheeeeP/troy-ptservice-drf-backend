@@ -1,6 +1,7 @@
 from .base import *
 
 DEBUG = True
+# print(getattr(mod, 'django'))
 ALLOWED_HOSTS = getattr(mod, 'django')['hosts']['dev']
 
 INSTALLED_APPS +=[
