@@ -1,18 +1,16 @@
 from django.db import models
+from model_utils import Choices
 
 
 class HashTag(models.Model):
-    SPECIALTY = 'specialty'
-    PURPOSE = 'purpose'
-    GOAL = 'goal'
-    TAG_CHOICES = [
-        (SPECIALTY, '전문성'),
-        (PURPOSE, '목적'),
-        (GOAL, '목표')
-    ]
+    TAG_CHOICES = Choices(
+        ('goal', '목표'),
+        ('specialty', '전문성'),
+        ('purpose', '목적')
+    )
     tag_type = models.CharField(
         choices=TAG_CHOICES,
-        default=GOAL,
+        default=TAG_CHOICES.goal,
         max_length=20,
         verbose_name='태그 종류'
     )
