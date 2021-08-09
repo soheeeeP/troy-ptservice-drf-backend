@@ -43,7 +43,7 @@ class UserProfile(AbstractUser):
         default=datetime.datetime.now().year,
         verbose_name='생년월일'
     )
-    profile_img = models.URLField(
+    profile_img = models.FileField(
         verbose_name='프로필사진'
     )
     user_type = models.CharField(

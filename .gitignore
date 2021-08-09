@@ -11,3 +11,4 @@ myvenv/
 key.json
 venv/
 .config/*
+static/*
