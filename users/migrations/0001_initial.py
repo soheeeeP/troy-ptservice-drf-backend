@@ -12,7 +12,7 @@ class Migration(migrations.Migration):
     initial = True
 
     dependencies = [
-        ('centers', '0001_initial'),
+        # ('centers', '0001_initial'),
         ('auth', '0012_alter_user_first_name_max_length'),
     ]
 
@@ -38,7 +38,7 @@ class Migration(migrations.Migration):
                 ('years_career', models.PositiveSmallIntegerField(default=0, validators=[django.core.validators.MinValueValidator(0), django.core.validators.MaxValueValidator(10)])),
                 ('license', models.BooleanField(default=False)),
                 ('education', models.TextField()),
-                ('center', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='trainer_profile', to='centers.center')),
+                # ('center', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='trainer_profile', to='centers.center')),
             ],
             options={
                 'verbose_name': '트레이니',

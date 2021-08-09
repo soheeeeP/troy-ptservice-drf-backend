@@ -130,7 +130,8 @@ class TrainerProfile(models.Model):
     center = models.ForeignKey(
         'centers.Center',
         related_name='trainer_profile',
-        on_delete=models.CASCADE
+        on_delete=models.CASCADE,
+        null=True
     )
 
     class Meta:
