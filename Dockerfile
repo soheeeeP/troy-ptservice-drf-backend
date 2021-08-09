@@ -1,6 +1,7 @@
 FROM python:3.9
 
 RUN apt-get update
+RUN apt install -y gdal-bin python-gdal python3-gdal
 WORKDIR /app
 COPY . .
 
@@ -10,8 +11,6 @@ COPY poetry.lock pyproject.toml /app/
 RUN curl -sSL https://raw.githubusercontent.com/sdispater/poetry/master/get-poetry.py | python \
 && poetry update \
 && poetry install
-
-RUN pip3 install -r ./requirements.txt
 
 RUN python3 ./manage.py makemigrations
 RUN python3 ./manage.py migrate
