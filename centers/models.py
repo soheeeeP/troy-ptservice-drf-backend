@@ -14,7 +14,7 @@ class Center(models.Model):
     )
     full_address = models.CharField(
         max_length=100,
-        verbose_name='주소'
+        verbose_name='도로명 주소'
     )
     city = models.CharField(
         max_length=50,
