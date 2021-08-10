@@ -23,6 +23,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'django.contrib.sites',
+    'django.contrib.gis',
 
     'users',
     'quests',
@@ -50,7 +51,12 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-ROOT_URLCONF = 'Troy.urls'
+# ROOT_URLCONF = 'Troy.urls.base'
+SET_MODE = os.environ.get('DJANGO_SETTINGS_MODULE')
+if SET_MODE == 'Troy.settings.production':
+    ROOT_URLCONF = 'Troy.urls.production'
+else:
+    ROOT_URLCONF = 'Troy.urls.development'
 
 TEMPLATES = [
     {
@@ -133,3 +139,9 @@ STATIC_URL = '/static/'
 # Default primary key field type
 # https://docs.djangoproject.com/en/3.2/ref/settings/#default-auto-field
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+MEDIA_URL = '/uploads/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'uploads')
+
+STATIC_URL = '/static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'static')
