@@ -1,4 +1,7 @@
+import datetime
+
 from django.db import models
+from django.core.validators import MinValueValidator, MaxValueValidator
 
 
 class Quest(models.Model):
@@ -7,6 +10,10 @@ class Quest(models.Model):
         on_delete=models.CASCADE,
         default=True,
         verbose_name='온라인 서비스'
+    )
+    date = models.DateTimeField(
+        auto_now=True,
+        verbose_name='퀘스트 생성일자'
     )
     meal_planner = models.OneToOneField(
         'MealPlanner',
@@ -19,7 +26,17 @@ class Quest(models.Model):
         verbose_name='운동퀘스트',
 
     )
-    quest_feedback = models.TextField()
+    rate_feedback = models.PositiveSmallIntegerField(
+        validators=[MinValueValidator(0), MaxValueValidator(5)],
+        default=3,
+        verbose_name='스탬프',
+        blank=False
+    )
+    quest_feedback = models.TextField(
+        default='',
+        verbose_name='피드백',
+        null=True
+    )
 
     class Meta:
         db_table = 'quest'
