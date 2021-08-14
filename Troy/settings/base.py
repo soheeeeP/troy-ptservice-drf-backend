@@ -1,7 +1,6 @@
 import os, sys, json
 from datetime import timedelta
 
-
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 SECRETS_PATH = os.path.join(BASE_DIR, '.config')
 SECRET_BASE_FILE = os.path.join(SECRETS_PATH, 'secret_key.json')
@@ -25,20 +24,22 @@ INSTALLED_APPS = [
     'django.contrib.sites',
     'django.contrib.gis',
 
+    # apps
     'users',
     'quests',
     'centers',
     'services',
     'tags',
 
+    # modules
     'rest_framework',
     'rest_framework_simplejwt',
     'dj_rest_auth',
     'dj_rest_auth.registration',
-    # django-allauth (social login)
-    # 'allauth',
-    # 'allauth.account',
-    # 'allauth.socialaccount',
+    'allauth',
+    'allauth.account',
+    'allauth.socialaccount',
+    'allauth.socialaccount.providers.google',
 ]
 
 MIDDLEWARE = [
@@ -88,12 +89,20 @@ REST_FRAMEWORK = {
     )
 }
 
+ACCOUNT_EMAIL_REQUIRED = True
+ACCOUNT_USER_MODEL_USERNAME_FIELD = None
+ACCOUNT_USERNAME_REQUIRED = False
+ACCOUNT_AUTHENTICATION_METHOD = 'email'
+
 REST_USE_JWT = True
 
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(hours=2),
-    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=10),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
     'ROTATE_REFRESH_TOKENS': False,
+    'UPDATE_LAST_LOGIN': False,
+    'ALGORITHM': 'HS256',
+    'SIGNING_KEY': SECRET_KEY,
 }
 
 JWT_AUTH_COOKIE = 'troy-auth'
