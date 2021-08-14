@@ -46,6 +46,12 @@ class UserProfile(AbstractUser):
         max_length=255,
         verbose_name='이메일'
     )
+    oauth = models.CharField(
+        db_index=True,
+        max_length=255,
+        default='',
+        verbose_name='OAuth_ID'
+    )
     username = models.CharField(
         max_length=150,
         verbose_name='이름'

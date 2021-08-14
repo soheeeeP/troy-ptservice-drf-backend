@@ -81,6 +81,11 @@ WSGI_APPLICATION = 'Troy.wsgi.base.application'
 # Rest-Framework
 # https://www.django-rest-framework.org/
 REST_FRAMEWORK = {
+    'DEFAULT_RENDERER_CLASSES': [
+        'Troy.renderer.ResponseRenderer',
+        'rest_framework.renderers.JSONRenderer',
+        'rest_framework.renderers.BrowsableAPIRenderer',
+    ],
     'DEFAULT_AUTHENTICATION_CLASSES': (
         # session authentication
         'rest_framework.authentication.SessionAuthentication',

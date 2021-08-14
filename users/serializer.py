@@ -6,8 +6,10 @@ from .models import UserProfile, TraineeProfile, TrainerProfile
 class AuthSerializer(serializers.Serializer):
     provider = serializers.ChoiceField(choices=['google', 'kakao', 'naver'])
     id_token = serializers.CharField()
-    email = serializers.EmailField()
     access_token = serializers.CharField()
+    oauth = serializers.CharField()
+    email = serializers.EmailField()
+    username = serializers.CharField()
 
     def validate(self, attrs):
         return attrs
