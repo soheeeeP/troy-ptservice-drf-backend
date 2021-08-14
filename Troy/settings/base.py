@@ -30,6 +30,7 @@ INSTALLED_APPS = [
     'centers',
     'services',
     'tags',
+    'schedule',
 
     # modules
     'rest_framework',
