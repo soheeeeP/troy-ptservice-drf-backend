@@ -32,6 +32,10 @@ class CustomUserManager(UserManager):
 
 
 class UserProfile(AbstractUser):
+    OAUTH_CHOICES = Choices(
+        ('Google', 'google'),
+        ('default', 'default')
+    )
     YEAR_CHOICES = [(r, r) for r in range(1984, datetime.date.today().year+1)]
     GENDER_CHOICES = Choices(
         ('male', '남성'),
@@ -46,7 +50,13 @@ class UserProfile(AbstractUser):
         max_length=255,
         verbose_name='이메일'
     )
-    oauth = models.CharField(
+    oauth_type = models.CharField(
+        choices=OAUTH_CHOICES,
+        default=OAUTH_CHOICES.default,
+        max_length=10,
+        verbose_name='OAuth_Type'
+    )
+    oauth_token = models.CharField(
         db_index=True,
         max_length=255,
         default='',

@@ -1,7 +1,6 @@
 import json
 
-from django.http import HttpResponseRedirect
-from django.shortcuts import render
+from django.db.models import Q
 from django.urls import reverse
 from django.views.generic import RedirectView
 
@@ -46,7 +45,10 @@ class AuthView(RedirectView, generics.RetrieveAPIView):
 
         response['user']['info'] = auth_serialized_data
         try:
-            user = UserProfile.objects.get(oauth=data['oauth'])
+            user = UserProfile.objects.get(
+                Q(oauth_type=data['provider']),
+                Q(oauth_token=data['oauth'])
+            )
             return Response('user already exists', status=status.HTTP_400_BAD_REQUEST)
         except UserProfile.DoesNotExist:
             response['user']['status'] = 'new'
