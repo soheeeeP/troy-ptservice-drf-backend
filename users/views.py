@@ -65,6 +65,7 @@ class UserView(generics.GenericAPIView, mixins.CreateModelMixin, mixins.UpdateMo
     def create(self, request, context=None, *args, **kwargs):
         print('signup vidwwww')
         print(kwargs.pop('context'))
+        # 처음 생성한 user에 대해서 access, refresh token 발급해주기
         pass
 
     def update(self, request, *args, **kwargs):
