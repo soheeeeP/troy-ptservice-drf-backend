@@ -6,7 +6,7 @@ from Troy.settings import base
 
 
 def authenticate_provider(provider):
-    print(provider)
+    # print(provider)
     # social login 확장 고려하여 provider 구분
     if provider == 'google':
         return True

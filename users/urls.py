@@ -7,7 +7,7 @@ from .views import AuthView, UserView
 app_name = 'users'
 urlpatterns = [
     path('login/validate',AuthView.as_view(), name='login_validate'),
-    path('signup/',UserView.as_view(),name='signup'),
+    path('signup',UserView.as_view(),name='signup'),
     # tokenID를 사용하여 user를 get_or_create. login한 상태로 Response전
     # path('token/login', TokenObtainPairView.as_view(), name='login'),
     # google callback server에서 유효한 user인지 확인, access_token return
