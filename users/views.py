@@ -47,8 +47,7 @@ class AuthView(RedirectView, generics.RetrieveAPIView):
         response['user']['info'] = auth_serialized_data
         try:
             user = UserProfile.objects.get(oauth=data['oauth'])
-            response['user']['status'] = 'exists'
-            return Response(response, status=status.HTTP_400_BAD_REQUEST)
+            return Response('user already exists', status=status.HTTP_400_BAD_REQUEST)
         except UserProfile.DoesNotExist:
             response['user']['status'] = 'new'
             return Response(response, status=status.HTTP_200_OK)
