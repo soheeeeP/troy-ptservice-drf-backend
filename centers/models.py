@@ -1,13 +1,13 @@
 from django.db import models
-from django.contrib.gis.db import models
+# from django.contrib.gis.db import models
 
 
 class Center(models.Model):
     # psql의 공간 데이터 column postgis 사용
-    location = models.PointField(
-        db_index=True,
-        verbose_name='위치'
-    )
+    # location = models.PointField(
+    #     db_index=True,
+    #     verbose_name='위치'
+    # )
     name = models.CharField(
         max_length=50,
         verbose_name='장소명'

@@ -19,10 +19,6 @@ class Service(models.Model):
     end_date = models.DateField(
         null=True
     )
-    term = models.PositiveSmallIntegerField(
-        default=0,
-        verbose_name='연장횟수'
-    )
 
     class Meta:
         db_table = 'service'

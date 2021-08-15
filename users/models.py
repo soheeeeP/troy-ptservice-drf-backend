@@ -1,14 +1,41 @@
 import datetime
+
+
 from tags.models import HashTag, PurposeTag, SpecialtyTag
 
 from django.db import models
-from django.contrib.auth.models import AbstractUser
+from django.contrib.auth.models import AbstractUser, UserManager
 from django.core.validators import MinValueValidator, MaxValueValidator
 
 from model_utils import Choices
 
 
+class CustomUserManager(UserManager):
+    use_in_migrations = True
+
+    def _create_user(self, email, password=None, **kwargs):
+        if not email:
+            raise ValueError('이메일은 필수입니다.')
+        user = self.model(email=self.normalize_email(email), **kwargs)
+        user.set_password(password)
+        user.save(using=self._db)
+
+    # 일반 유저 생성
+    def create_user(self, email, password, **kwargs):
+        kwargs.setdefault('is_staff', False)
+        return self._create_user(email, password, **kwargs)
+
+    # 관리자 유저 생성
+    def create_superuser(self, email, password, **kwargs):
+        kwargs.setdefault('is_staff', True)
+        return self._create_user(email, password, **kwargs)
+
+
 class UserProfile(AbstractUser):
+    OAUTH_CHOICES = Choices(
+        ('Google', 'google'),
+        ('default', 'default')
+    )
     YEAR_CHOICES = [(r, r) for r in range(1984, datetime.date.today().year+1)]
     GENDER_CHOICES = Choices(
         ('male', '남성'),
@@ -22,6 +49,18 @@ class UserProfile(AbstractUser):
         unique=True,
         max_length=255,
         verbose_name='이메일'
+    )
+    oauth_type = models.CharField(
+        choices=OAUTH_CHOICES,
+        default=OAUTH_CHOICES.default,
+        max_length=10,
+        verbose_name='OAuth_Type'
+    )
+    oauth_token = models.CharField(
+        db_index=True,
+        max_length=255,
+        default='',
+        verbose_name='OAuth_ID'
     )
     username = models.CharField(
         max_length=150,
@@ -67,6 +106,7 @@ class UserProfile(AbstractUser):
         verbose_name='트레이너 프로필'
     )
 
+    objects = CustomUserManager()
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = []
 
@@ -75,6 +115,12 @@ class UserProfile(AbstractUser):
         verbose_name = '회원'
         verbose_name_plural = verbose_name
         ordering = ['date_joined']
+
+    def has_perm(self, perm, obj=None):
+        return self.is_staff
+
+    def has_module_perms(self, app_label):
+        return True
 
 
 class BodyInfo(models.Model):
