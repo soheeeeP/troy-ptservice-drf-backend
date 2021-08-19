@@ -1,10 +1,10 @@
 FROM nginx:latest
 
-COPY nginx.conf /etc/nginx/nginx.conf
-COPY nginx-troy.conf /etc/nginx/sites-available/
+COPY nginx.conf /usr/local/etc/nginx/nginx.conf
 
-RUN mkdir -p /etc/nginx/sites-enabled/\
-    && ln -s /etc/nginx/sites-available/nginx-troy.conf /etc/nginx/sites-enabled/
+COPY nginx-troy.conf /usr/local/etc/nginx/sites-available/
 
-EXPOSE 80
+RUN mkdir -p /usr/local/etc/nginx/sites-enabled/\
+    && ln -s /usr/local/etc/nginx/sites-available/nginx-app.conf /usr/local/etc/nginx/sites-enabled/
+
 CMD ["nginx", "-g", "daemon off;"]
