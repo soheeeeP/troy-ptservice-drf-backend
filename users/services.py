@@ -1,8 +1,23 @@
+import json
 import requests
 
+from rest_framework import status
 from rest_framework.exceptions import ValidationError
+from rest_framework.response import Response
 
+from .models import UserProfile
 from Troy.settings import base
+
+
+def user_login_from_authview(user: UserProfile):
+    response = requests.post('users:login', data={'email': user.email})
+    response_code = response.getcode()
+    login_data = json.loads(response.read().decode('utf-8'))
+
+    if response_code == 201:
+        return Response({'newUser': False, 'login': {'message': 'success', 'user': user.pk}},status=response_code)
+    else:
+        return Response({'newUser': False, 'login': {'message': 'fail'}}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 def authenticate_provider(provider):
@@ -15,22 +30,11 @@ def authenticate_provider(provider):
 
 
 class GoogleAuthService(object):
-
     def __init__(self):
         self.base_url = 'http://localhost:8000/'
         self.redirect_uri = self.base_url + 'accounts/google/callback'
         self.google_id_token_info_url = 'https://www.googleapis.com/oauth2/v3/tokeninfo'
         self.google_email_info_url = 'https://www.googleapis.com/oauth2/v1/tokeninfo'
-
-    # data = {
-    #     'provider': '[idpId]',
-    #     'id_token': '[tokenObj][id_token]',
-    #     'access_token': '[tokenObj][access_token]',
-    #     'oauth': '[googleId]',
-    #     'email': '[profileObj][email]',
-    #     'username': '[profileObj][name]',
-    #     'profile_img': '[profileObj][imageUrl]'
-    # }
 
     def google_validate_email(self, data):
         # [access_token]으로 Google OAuth에 request 전송
@@ -69,21 +73,12 @@ class GoogleAuthService(object):
         response_flag = [client_id == response_json['aud']]
         return response_flag
 
-    def obtain_token(self):
-        pass
-
-    def refresh_token(self):
-        pass
-
-    def verify_token(self):
-        pass
-
 
 class UserService(object):
     # email로 user unique check
     # def email_duplicate_check()
-        # user_Create할때 passwd 저장안함!!!!
-        # 아니면 access_token으로 make_password
+    # user_Create할때 passwd 저장안함!!!!
+    # 아니면 access_token으로 make_password
 
     # email 추가정보 입력
     # def register_additional_info_using_email()

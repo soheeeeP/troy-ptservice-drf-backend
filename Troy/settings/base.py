@@ -106,8 +106,9 @@ SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(minutes=10),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
     'ROTATE_REFRESH_TOKENS': False,
-    'UPDATE_LAST_LOGIN': False,
+    'UPDATE_LAST_LOGIN': True,
     'ALGORITHM': 'HS256',
+    'AUTH_HEADER_TYPES': 'Bearer',
     'SIGNING_KEY': SECRET_KEY,
 }
 
@@ -134,6 +135,11 @@ AUTH_PASSWORD_VALIDATORS = [
 
 AUTH_USER_MODEL = 'users.UserProfile'
 SITE_ID = 1
+
+AUTHENTICATION_BACKENDS = {
+    'django.contrib.auth.backends.ModelBackend',
+    'Troy.backend.PasswordlessBackend',
+}
 
 # Internationalization
 # https://docs.djangoproject.com/en/3.2/topics/i18n/
