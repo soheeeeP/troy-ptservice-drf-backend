@@ -7,7 +7,7 @@ from .views import AuthView, LoginView, UserView
 app_name = 'users'
 urlpatterns = [
     path('oauth/validate', AuthView.as_view(), name='validate'),
-    path('signup/', UserView.as_view(), name='signup'),
+    path('signup', UserView.as_view(), name='signup'),
 
     path('login', LoginView.as_view(), name='login'),
     path('login/obtain', TokenObtainPairView.as_view(), name='token_obtain_pair'),

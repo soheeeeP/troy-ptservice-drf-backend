@@ -1,9 +1,11 @@
 import json
-import requests
+import os, requests
 
+from django.contrib.auth import authenticate
 from rest_framework import status
 from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
+from rest_framework_simplejwt.tokens import RefreshToken
 
 from .models import UserProfile
 from Troy.settings import base
@@ -15,7 +17,7 @@ def user_login_from_authview(user: UserProfile):
     login_data = json.loads(response.read().decode('utf-8'))
 
     if response_code == 201:
-        return Response({'newUser': False, 'login': {'message': 'success', 'user': user.pk}},status=response_code)
+        return Response({'newUser': False, 'login': {'message': 'success', 'user': user.pk}}, status=response_code)
     else:
         return Response({'newUser': False, 'login': {'message': 'fail'}}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
@@ -75,13 +77,34 @@ class GoogleAuthService(object):
 
 
 class UserService(object):
-    # email로 user unique check
-    # def email_duplicate_check()
-    # user_Create할때 passwd 저장안함!!!!
-    # 아니면 access_token으로 make_password
+    def __init__(self, data):
+        self.oauth_info = data['oauth_info']
+        self.sub_info = data['sub_info']
+        self.user_type = data['user_type']
 
-    # email 추가정보 입력
-    # def register_additional_info_using_email()
+    def set_user_profile_info(self, **kwargs):
+        user = UserProfile(
+            email=self.oauth_info['email'],
+            username=self.oauth_info['username'],
+            oauth_type=self.oauth_info['oauth_type'],
+            oauth_token=self.oauth_info['oauth_token'],
+            # profile_img=self.save_img_from_url(
+            #     img_id=oauth_info['oauth_token'],
+            #     url=oauth_info['profile_img']
+            # ),
+            gender=self.sub_info['gender'],
+            birth_year=self.sub_info['birth_year'],
+            nickname=self.sub_info['nickname'],
+            user_type=self.user_type
+        )
+        return user
 
-    # token이 없음 -> validate -> signup -> additional_info -> generate token -> front로 login정보와 token을 보
-    pass
+    @staticmethod
+    def save_img_from_url(self, img_id, url):
+        ext = '.png'
+        img_data = requests.get(url).content
+        img_path = os.path.join(base.MEDIA_ROOT, 'profile', img_id+ext)
+        with open(img_path, 'wb') as f:
+            file = f.write(img_data)
+
+        return img_data

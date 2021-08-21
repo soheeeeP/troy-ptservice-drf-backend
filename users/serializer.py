@@ -75,12 +75,15 @@ class BodyInfoSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
     def create(self, validated_data):
-
         return super(BodyInfoSerializer, self).create(validated_data)
 
+
 class TrainerProfileSerializer(serializers.ModelSerializer):
-    center = CenterSerializer()
+    center = CenterSerializer(read_only=True)
 
     class Meta:
         model = TrainerProfile
         fields = ['center', 'years_career', 'license', 'education']
+
+    def create(self, validated_data):
+        return super(TrainerProfileSerializer, self).create(validated_data)
