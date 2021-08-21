@@ -79,86 +79,86 @@ class LoginView(generics.CreateAPIView):
 class UserView(generics.GenericAPIView, mixins.CreateModelMixin, mixins.UpdateModelMixin, mixins.DestroyModelMixin):
     serializer_class = UserProfileSerializer
 
-    def user_profile_using_serializer(self):
-        pass
+    def user_profile_using_serializer(self, data):
+        user_service = UserService(data=data)
+        serializer = self.serializer_class(
+            data=model_to_dict(user_service.set_user_profile_info())
+        )
+        serializer.is_valid(raise_exception=True)
+        return serializer
 
-    def user_type_profile_using_serializer(self):
-        pass
+    def hashtag_using_serializer(self, data):
+        serializer = HashTagSerializer(data=data, many=True)
+        serializer.is_valid(raise_exception=True)
+        tags_list = json.loads(json.dumps(serializer.data[:]))
+        return tags_list
 
-    def hashtag_using_serializer(self):
-        pass
+    def trainee_profile_using_serializer(self, data, tags_list):
+        serializer = BodyInfoSerializer(data=data)
+        serializer.is_valid(raise_exception=True)
+        body_info_obj = BodyInfoSerializer().create(serializer.data)
+        body_info_obj.save()
+
+        trainee = TraineeProfile.objects.create(body_info=body_info_obj)
+        for t in tags_list:
+            h = HashTag.objects.create(tag_type=t['tag_type'], tag_content=t['tag_content'])
+            trainee.purpose.add(h)
+        trainee.save()
+        return trainee, trainee.pk
+
+    def trainer_profile_using_serializer(self, data, tags_list):
+        serializer = TrainerProfileSerializer(data=data)
+        serializer.is_valid(raise_exception=True)
+        trainer = TrainerProfileSerializer().create(serializer.data)
+        for t in tags_list:
+            h = HashTag.objects.create(tag_type=t['tag_type'], tag_content=t['tag_content'])
+            trainer.specialty.add(h)
+        trainer.save()
+        return trainer, trainer.pk
 
     def post(self, request, *args, **kwargs):
         data = json.loads(request.body)
 
-        user_service = UserService(data=data)
-        # 기본정보 profile정보를 serialize화(구글 제공 정보, 추가 입력 정보 저장)
-        user_profile_serializer = self.serializer_class(
-            data=model_to_dict(user_service.set_user_profile_info())
-        )
-        user_profile_serializer.is_valid(raise_exception=True)
+        # 1. 기본정보 profile정보를 serialize화(구글 제공 정보, 추가 입력 정보 저장)
+        user_profile_serializer = self.user_profile_using_serializer(data=data)
 
         with transaction.atomic():
-            # UserProfile, TraineeProfile/TrainerProfile 객체 생성
-            print('__USER PROFILE__')
-            print(user_profile_serializer.validated_data)
+            # 2. UserProfile 객체 생성
+            # print(user_profile_serializer.validated_data)
             self.perform_create(user_profile_serializer)
+            user_obj = UserProfile.objects.get(email=user_profile_serializer.validated_data['email'])
 
-            # user_type(trainee, trainer)에 따라 TraineeProfile/TrainerProfile serialize화
-            tag_serializer = HashTagSerializer(data=data['user_info']['tags'], many=True)
-            tag_serializer.is_valid(raise_exception=True)
-            tags_list = json.loads(json.dumps(tag_serializer.data[:]))
+            tags_list = self.hashtag_using_serializer(data=data['user_info']['tags'])
 
+            # 3. user_type(trainee, trainer)에 따라 TraineeProfile/TrainerProfile serialize화, 객체 생성
             if data['user_type'] == 'trainee':
-                body_info_serializer = BodyInfoSerializer(data=data['user_info']['body_info'])
-                body_info_serializer.is_valid(raise_exception=True)
-                body_info_obj = BodyInfoSerializer().create(body_info_serializer.data)
-                body_info_obj.save()
-
-                print('__TRAINEE_BODY_INFO__')
-                print(body_info_obj)
-
-                trainee = TraineeProfile.objects.create(body_info=body_info_obj)
-                for t in tags_list:
-                    h = HashTag.objects.create(tag_type=t['tag_type'], tag_content=t['tag_content'])
-                    trainee.purpose.add(h)
-                trainee.save()
-                pk = trainee.pk
-
-                print('__TRAINEE__')
-                print(trainee)
-                print('__TAGS__')
-                print(trainee.purpose.all())
-
+                trainee, pk = self.trainee_profile_using_serializer(
+                    data=data['user_info']['body_info'],
+                    tags_list=tags_list
+                )
+                user_obj.trainee=trainee
+                # print(trainee)
+                # print(trainee.purpose.all())
             else:
-                user_type_serializer = TrainerProfileSerializer(data=data['user_info'])
-                user_type_serializer.is_valid(raise_exception=True)
-                trainer = TrainerProfileSerializer().create(user_type_serializer.data)
-                for t in tags_list:
-                    h = HashTag.objects.create(tag_type=t['tag_type'], tag_content=t['tag_content'])
-                    trainer.specialty.add(h)
-                trainer.save()
-                pk = trainer.pk
+                trainer, pk = self.trainer_profile_using_serializer(
+                    data=data['user_info'],
+                    tags_list=tags_list
+                )
+                user_obj.trainer=trainer
+                # print(trainer)
+                # print(trainer.specialty.all())
+            user_obj.save()
 
-                print('__TRAINER__')
-                print(trainer)
-                print('__TAGS__')
-                print(trainer.specialty.all())
-
-            # 로그인을 수행하고, token을 발급
+            # 4. 로그인을 수행하고, token을 발급
             login_serializer = LoginSerializer(data={'email': data['oauth_info']['email']})
             login_serializer.is_valid(raise_exception=True)
-            print('__LOGIN_INFO__')
-            print(login_serializer.validated_data)
+            # print(login_serializer.validated_data)
 
-            # user_pk와 token정보를 담아서 응답data를 구성
+            # 5. user_pk와 token정보를 담아서 응답data를 구성
             response = {
                 'user_pk': pk,
                 'token': login_serializer.data
             }
-            print(response)
-            print('-------------------------------')
-
             return Response(response, status=status.HTTP_201_CREATED)
 
     def update(self, request, *args, **kwargs):

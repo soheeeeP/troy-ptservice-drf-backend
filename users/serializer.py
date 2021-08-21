@@ -31,7 +31,7 @@ class LoginSerializer(serializers.Serializer):
 
     def validate(self, attrs):
         user = authenticate(email=attrs['email'])
-        print(user)
+        # print(user)
         if user is None:
             raise serializers.ValidationError('invalid login credentials')
 
@@ -39,7 +39,7 @@ class LoginSerializer(serializers.Serializer):
         data = super().validate(attrs)
         data['refresh'] = str(refresh)
         data['access'] = str(refresh.access_token)
-        print(data)
+        # print(data)
 
         if base.SIMPLE_JWT['UPDATE_LAST_LOGIN'] is True:
             update_last_login(None, user)
