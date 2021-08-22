@@ -4,7 +4,7 @@ services:
     container_name: nginx-container
     build:
       context: .
-      dockerfile: .config/nginx/Dockerfile
+      dockerfile: .ci-cd/config/nginx/Dockerfile
     image: docker-server/nginx
     restart: always
     # container port mapping 정보

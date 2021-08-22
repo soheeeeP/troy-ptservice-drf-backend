@@ -77,7 +77,7 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = 'Troy.wsgi.base.application'
+WSGI_APPLICATION = 'Troy.wsgi.application'
 
 # Rest-Framework
 # https://www.django-rest-framework.org/
