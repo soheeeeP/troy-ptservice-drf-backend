@@ -3,7 +3,8 @@ services:
   nginx:
     container_name: nginx-container
     build:
-      context: ./Troy/nginx
+      context: .
+      dockerfile: .config/nginx/Dockerfile
     image: docker-server/nginx
     restart: always
     # container port mapping 정보

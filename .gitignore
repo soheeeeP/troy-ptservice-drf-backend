@@ -10,5 +10,7 @@ myvenv/
 .idea
 key.json
 venv/
-.config/*
+#.config/*
+.env
 static/*
+secret_key.json

@@ -2,7 +2,7 @@ import os, sys, json
 from datetime import timedelta
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-SECRETS_PATH = os.path.join(BASE_DIR, '.config')
+SECRETS_PATH = os.path.join(BASE_DIR)
 SECRET_BASE_FILE = os.path.join(SECRETS_PATH, 'secret_key.json')
 
 mod = sys.modules[__name__]
@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     'allauth.account',
     'allauth.socialaccount',
     'allauth.socialaccount.providers.google',
+    "environs",
 ]
 
 MIDDLEWARE = [
