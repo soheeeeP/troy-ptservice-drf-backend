@@ -1,4 +1,3 @@
-import os, requests
 from django.contrib.auth import authenticate
 from django.contrib.auth.models import update_last_login
 from django.db import transaction
@@ -7,21 +6,10 @@ from rest_framework import serializers
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from .models import UserProfile, TraineeProfile, TrainerProfile, BodyInfo
-from tags.serializer import HashTagSerializer
 from centers.serializer import CenterSerializer
+from oauth.serializer import AuthCreateSerializer
+
 from Troy.settings import base
-
-
-class AuthSerializer(serializers.Serializer):
-    provider = serializers.ChoiceField(choices=['google', 'kakao', 'naver'])
-    id_token = serializers.CharField()
-    access_token = serializers.CharField()
-    oauth = serializers.CharField()
-    email = serializers.EmailField()
-    username = serializers.CharField()
-
-    def validate(self, attrs):
-        return attrs
 
 
 class LoginSerializer(serializers.Serializer):
@@ -49,17 +37,17 @@ class LoginSerializer(serializers.Serializer):
 
 class UserProfileSerializer(serializers.ModelSerializer):
     # profile_img = serializers.FileField(max_length=None)
+    oauth = AuthCreateSerializer
 
     class Meta:
         model = UserProfile
-        fields = ['email', 'oauth_type', 'oauth_token', 'username', 'nickname', 'gender', 'birth_year']
+        fields = ['email', 'oauth', 'username', 'nickname', 'gender', 'birth_year']
 
     def create(self, validated_data):
         user, created = UserProfile.objects.update_or_create(
             email=validated_data.get('email', None),
             defaults={
-                'oauth_type': validated_data.get('oauth_type', None),
-                'oauth_token': validated_data.get('oauth_token', None),
+                'oauth': validated_data.get('oauth', None),
                 'username': validated_data.get('username', None),
                 'nickname': validated_data.get('nickname', None),
                 'gender': validated_data.get('gender', None),

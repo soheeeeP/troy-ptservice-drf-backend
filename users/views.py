@@ -1,60 +1,21 @@
 import json
 
 from django.db import transaction
-from django.db.models import Q
 from django.forms import model_to_dict
-from django.urls import reverse
-from django.views.generic import RedirectView
 
 from rest_framework import generics, mixins, status
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 
 from .models import UserProfile, TrainerProfile, TraineeProfile, BodyInfo
-from .services import (
-    authenticate_provider, user_login_from_authview,
-    GoogleAuthService, UserService
-)
+from .services import UserService
 from .serializer import (
-    AuthSerializer, LoginSerializer, UserProfileSerializer, BodyInfoSerializer, TrainerProfileSerializer
+    LoginSerializer, UserProfileSerializer, BodyInfoSerializer, TrainerProfileSerializer
 )
 from tags.models import HashTag
 from tags.serializer import HashTagSerializer
-
-
-# access_token 및 id_token 권한인증(GET)
-class AuthView(RedirectView, generics.RetrieveAPIView):
-    serializer_class = AuthSerializer
-
-    def get(self, request, *args, **kwargs):
-        data = json.loads(request.body)
-        response = {'validation': {}, 'user': {}}
-
-        auth_serializer = self.serializer_class(data=data)
-        auth_serializer.is_valid(raise_exception=True)
-        auth_serialized_data = auth_serializer.data
-
-        provider_validation = authenticate_provider(provider=auth_serialized_data['provider'])
-        if provider_validation is False:
-            return Response({'invalidProvider': False}, status=status.HTTP_400_BAD_REQUEST)
-        response['validation']['provider'] = 'success'
-
-        auth_service = GoogleAuthService()
-        user_validation = auth_service.google_validate_email(data=auth_serialized_data)
-        if user_validation is False:
-            return Response({'invalidUser': False}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        response['validation']['email'] = 'success'
-
-        response['user']['info'] = auth_serialized_data
-        try:
-            user = UserProfile.objects.get(
-                Q(oauth_type=data['provider']),
-                Q(oauth_token=data['oauth'])
-            )
-            return user_login_from_authview(user=user)
-        except UserProfile.DoesNotExist:
-            response['user']['status'] = 'new'
-            return Response(response, status=status.HTTP_200_OK)
+from oauth.services import AuthService
+from oauth.serializer import AuthCreateSerializer
 
 
 class LoginView(generics.CreateAPIView):
@@ -67,25 +28,33 @@ class LoginView(generics.CreateAPIView):
 
     def post(self, request, *args, **kwargs):
         data = json.loads(request.body)
+        response = {}
         serializer = self.serializer_class(data=data)
         serializer.is_valid(raise_exception=True)
         serializer.save()
         print(serializer.validated_data)
-
+        # userpk까지 담아서 보낼것!
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
 # 로그인 및 회원가입(POST), 회원정보수정(PUT/PATCH), 회원탈퇴(DELETE)
-class UserView(generics.GenericAPIView, mixins.CreateModelMixin, mixins.UpdateModelMixin, mixins.DestroyModelMixin):
+class SignUpView(generics.GenericAPIView, mixins.CreateModelMixin, mixins.UpdateModelMixin, mixins.DestroyModelMixin):
     serializer_class = UserProfileSerializer
 
     def user_profile_using_serializer(self, data):
-        user_service = UserService(data=data)
-        serializer = self.serializer_class(
-            data=model_to_dict(user_service.set_user_profile_info())
-        )
-        serializer.is_valid(raise_exception=True)
-        return serializer
+        auth_service = AuthService(data=data['oauth'])
+        auth_serializer = AuthCreateSerializer(data=model_to_dict(auth_service.sef_auth_info()))
+        auth_serializer.is_valid(raise_exception=True)
+        print(auth_serializer.validated_data)
+        with transaction.atomic():
+            oauth = auth_serializer.save()
+            user_service = UserService(data=data)
+            user_serializer = self.serializer_class(
+                data=model_to_dict(user_service.set_user_profile_info(oauth=oauth))
+            )
+            user_serializer.is_valid(raise_exception=True)
+            print(user_serializer.validated_data)
+        return auth_serializer, user_serializer
 
     def hashtag_using_serializer(self, data):
         serializer = HashTagSerializer(data=data, many=True)
@@ -120,13 +89,14 @@ class UserView(generics.GenericAPIView, mixins.CreateModelMixin, mixins.UpdateMo
         data = json.loads(request.body)
 
         # 1. 기본정보 profile정보를 serialize화(구글 제공 정보, 추가 입력 정보 저장)
-        user_profile_serializer = self.user_profile_using_serializer(data=data)
+        auth, user_profile = self.user_profile_using_serializer(data=data)
 
         with transaction.atomic():
             # 2. UserProfile 객체 생성
             # print(user_profile_serializer.validated_data)
-            self.perform_create(user_profile_serializer)
-            user_obj = UserProfile.objects.get(email=user_profile_serializer.validated_data['email'])
+            auth.save()
+            user_obj = user_profile.save()
+            print(user_obj.email)
 
             tags_list = self.hashtag_using_serializer(data=data['user_info']['tags'])
 
@@ -150,13 +120,13 @@ class UserView(generics.GenericAPIView, mixins.CreateModelMixin, mixins.UpdateMo
             user_obj.save()
 
             # 4. 로그인을 수행하고, token을 발급
-            login_serializer = LoginSerializer(data={'email': data['oauth_info']['email']})
+            login_serializer = LoginSerializer(data={'email': data['base_info']['email']})
             login_serializer.is_valid(raise_exception=True)
             # print(login_serializer.validated_data)
 
             # 5. user_pk와 token정보를 담아서 응답data를 구성
             response = {
-                'user_pk': pk,
+                'user_pk': user_obj.pk,
                 'token': login_serializer.data
             }
             return Response(response, status=status.HTTP_201_CREATED)
