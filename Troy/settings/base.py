@@ -25,6 +25,7 @@ INSTALLED_APPS = [
     'django.contrib.gis',
 
     # apps
+    'oauth',
     'users',
     'quests',
     'centers',
