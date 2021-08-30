@@ -57,17 +57,12 @@ class UserProfile(AbstractUser):
         max_length=255,
         verbose_name='이메일'
     )
-    oauth_type = models.CharField(
-        choices=OAUTH_CHOICES,
-        default=OAUTH_CHOICES.default,
-        max_length=10,
-        verbose_name='OAuth_Type'
-    )
-    oauth_token = models.CharField(
-        db_index=True,
-        max_length=255,
-        default='',
-        verbose_name='OAuth_ID'
+    oauth = models.OneToOneField(
+        'oauth.Auth',
+        on_delete=models.CASCADE,
+        blank=True,
+        null=True,
+        verbose_name='OAuth'
     )
     username = models.CharField(
         max_length=150,
