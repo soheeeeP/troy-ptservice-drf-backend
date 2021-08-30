@@ -6,7 +6,7 @@ from rest_framework import generics, mixins, status
 from rest_framework.response import Response
 
 from .models import Auth
-from .services import user_login_from_authview, GoogleAuthService
+from .services import GoogleAuthService
 from .serializer import AuthDefaultSerializer
 
 from users.models import UserProfile
@@ -27,12 +27,12 @@ class AuthView(generics.RetrieveAPIView):
         auth_service = GoogleAuthService()
         provider_validation = auth_service.authenticate_provider(provider=auth_serialized_data['provider'])
         if provider_validation is False:
-            return Response({'invalidProvider': False}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'invalidProvider': False}, status=status.HTTP_401_UNAUTHORIZED)
         response['validation']['provider'] = 'success'
 
-        user_validation = auth_service.google_validate_email(data=auth_serialized_data)
+        user_validation = auth_service.google_validate_client_id(data=auth_serialized_data)
         if user_validation is False:
-            return Response({'invalidUser': False}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response({'invalidUser': False}, status=status.HTTP_401_UNAUTHORIZED)
         response['validation']['email'] = 'success'
 
         response['user']['info'] = auth_serialized_data
@@ -42,7 +42,7 @@ class AuthView(generics.RetrieveAPIView):
                 Q(oauth_token=data['oauth'])
             )
             user = UserProfile.objects.get(oauth=oauth)
-            return user_login_from_authview(user=user)
+            return Response({'newUser': False}, status=status.HTTP_403_FORBIDDEN)
         except Auth.DoesNotExist:
             response['user']['status'] = 'new'
             return Response(response, status=status.HTTP_200_OK)

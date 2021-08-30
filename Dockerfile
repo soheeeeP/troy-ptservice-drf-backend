@@ -15,6 +15,6 @@ RUN curl -sSL https://raw.githubusercontent.com/sdispater/poetry/master/get-poet
 RUN python3 ./manage.py makemigrations
 RUN python3 ./manage.py migrate
 
-ENV DJANGO_SETTINGS_MODULE Troy.settings.production
+ENV DJANGO_SETTINGS_MODULE Troy.settings.development
 CMD ["python", "./manage.py", "runserver","0.0.0.0:8000"]
 EXPOSE 8000

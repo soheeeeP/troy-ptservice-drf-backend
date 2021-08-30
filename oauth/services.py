@@ -11,21 +11,8 @@ from users.models import UserProfile
 from Troy.settings import base
 
 
-def user_login_from_authview(user: UserProfile):
-    response = requests.post('users:login', data={'email': user.email})
-    response_code = response.getcode()
-    login_data = json.loads(response.read().decode('utf-8'))
-
-    if response_code == 201:
-        return Response({'newUser': False, 'login': {'message': 'success', 'user': user.pk}}, status=response_code)
-    else:
-        return Response({'newUser': False, 'login': {'message': 'fail'}}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-
 class GoogleAuthService(object):
     def __init__(self):
-        self.base_url = 'http://localhost:8000/'
-        self.redirect_uri = self.base_url + 'accounts/google/callback'
         self.google_id_token_info_url = 'https://www.googleapis.com/oauth2/v3/tokeninfo'
         self.google_email_info_url = 'https://www.googleapis.com/oauth2/v1/tokeninfo'
 
