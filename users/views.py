@@ -1,22 +1,13 @@
 import json
 
-from django.db import transaction
-from django.forms import model_to_dict
-
 from rest_framework import generics, mixins, status
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 
-from .models import UserProfile, TrainerProfile, TraineeProfile, BodyInfo
 from .services import UserService
 from .serializer import (
-    LoginSerializer, UserProfileCreateSerializer, TrainerProfileCreateSerializer, TraineeProfileCreateSerializer
+    LoginSerializer, UserProfileCreateSerializer
 )
-from tags.models import HashTag
-from tags.serializer import HashTagSerializer
-from oauth.services import AuthService
-from oauth.serializer import AuthCreateSerializer
-from centers.serializer import CenterSerializer
 
 
 class LoginView(generics.CreateAPIView):
