@@ -1,6 +1,7 @@
 FROM python:3.9
 
 RUN apt-get update
+RUN apt install -y gdal-bin python-gdal python3-gdal
 WORKDIR /app
 COPY . .
 
@@ -11,11 +12,9 @@ RUN curl -sSL https://raw.githubusercontent.com/sdispater/poetry/master/get-poet
 && poetry update \
 && poetry install
 
-RUN pip3 install -r ./requirements.txt
-
 RUN python3 ./manage.py makemigrations
 RUN python3 ./manage.py migrate
 
-ENV DJANGO_SETTINGS_MODULE Troy.settings.production
+ENV DJANGO_SETTINGS_MODULE Troy.settings.development
 CMD ["python", "./manage.py", "runserver","0.0.0.0:8000"]
 EXPOSE 8000
