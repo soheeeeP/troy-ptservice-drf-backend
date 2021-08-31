@@ -1,5 +1,4 @@
-import datetime
-
+import datetime, os
 
 from tags.models import HashTag, PurposeTag, SpecialtyTag
 
@@ -8,6 +7,14 @@ from django.contrib.auth.models import AbstractUser, UserManager
 from django.core.validators import MinValueValidator, MaxValueValidator
 
 from model_utils import Choices
+
+from Troy.settings import base
+
+
+def set_img_path(instance):
+    filename = instance.oauth_token + '.png'
+    file_path = os.path.join(base.MEDIA_ROOT, 'profile', filename)
+    return file_path
 
 
 class CustomUserManager(UserManager):
@@ -50,17 +57,12 @@ class UserProfile(AbstractUser):
         max_length=255,
         verbose_name='이메일'
     )
-    oauth_type = models.CharField(
-        choices=OAUTH_CHOICES,
-        default=OAUTH_CHOICES.default,
-        max_length=10,
-        verbose_name='OAuth_Type'
-    )
-    oauth_token = models.CharField(
-        db_index=True,
-        max_length=255,
-        default='',
-        verbose_name='OAuth_ID'
+    oauth = models.OneToOneField(
+        'oauth.Auth',
+        on_delete=models.CASCADE,
+        blank=True,
+        null=True,
+        verbose_name='OAuth'
     )
     username = models.CharField(
         max_length=150,
@@ -83,6 +85,9 @@ class UserProfile(AbstractUser):
         verbose_name='생년월일'
     )
     profile_img = models.FileField(
+        upload_to=set_img_path,
+        blank=True,
+        null=True,
         verbose_name='프로필사진'
     )
     user_type = models.CharField(
@@ -124,7 +129,17 @@ class UserProfile(AbstractUser):
 
 
 class BodyInfo(models.Model):
+    BODY_TYPE_CHOICES = Choices(
+        ('inverted_triangle', '역삼각형'),
+        ('triangle', '삼각형'),
+        ('leanRectangle','빼빼로형'),
+        ('wideRectangle','통나무형'),
+        ('oval','복부비만'),
+        ('default', '없음')
+    )
     body_type = models.CharField(       # choices로 구체화 필요
+        choices=BODY_TYPE_CHOICES,
+        default=BODY_TYPE_CHOICES.default,
         max_length=20,
         verbose_name='체형'
     )
@@ -146,7 +161,7 @@ class BodyInfo(models.Model):
 
 
 class TraineeProfile(models.Model):
-    body_info = models.ForeignKey(
+    body_info = models.OneToOneField(
         'BodyInfo',
         on_delete=models.CASCADE,
         related_name='trainee_profile'

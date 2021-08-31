@@ -21,5 +21,6 @@ COPY . .
 
 ENV DJANGO_SETTINGS_MODULE Troy.settings.development
 
-CMD ["uwsgi", "--ini", "uwsgi.ini"]
-#CMD ["python", "./manage.py", "runserver","0.0.0.0:8000"]
+ENV DJANGO_SETTINGS_MODULE Troy.settings.development
+CMD ["python", "./manage.py", "runserver","0.0.0.0:8000"]
+EXPOSE 8000
