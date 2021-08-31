@@ -4,6 +4,7 @@ from rest_framework import generics, mixins, status
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 
+from .models import *
 from .services import UserService
 from .serializer import (
     LoginSerializer, UserProfileCreateSerializer
@@ -57,4 +58,54 @@ class SignUpView(generics.GenericAPIView, mixins.CreateModelMixin, mixins.Update
         pass
 
     def destroy(self, request, *args, **kwargs):
+        pass
+
+
+# 트레이니 메인 프로필 조회(GET), 수정(PUT)
+class TraineeProfileView(generics.RetrieveUpdateAPIView):
+
+    def get_queryset(self, trainee_pk):
+        return UserProfile.objects.prefetch_related('trainee_id').get(pk=trainee_pk)
+
+    def get(self, request, *args, **kwargs):
+        # nickname, gender, profile_img, purpose_tag, coach_name
+        user = self.get_queryset(trainee_pk=self.kwargs['pk'])
+        print(user)
+
+    def put(self, request, *args, **kwargs):
+        pass
+
+
+# 트레이니 세부 프로필 (GET)
+class TraineeSubProfileView(generics.RetrieveAPIView):
+
+    def get_queryset(self, trainer_pk):
+        return TraineeProfile.objects.get(pk=trainer_pk)
+
+    def get(self, request, *args, **kwargs):
+        # body_type, weight, height, goal(due_date, text_goal)
+        pass
+
+
+# 트레이너 메인 프로필 조회(GET), 수정(PUT)
+class TrainerProfileView(generics.RetrieveUpdateAPIView):
+    def get(self, request, *args, **kwargs):
+        pass
+
+    def put(self, request, *args, **kwargs):
+        pass
+
+
+# 트레이너 세부 프로필 (GET)
+class TrainerSubProfileView(generics.RetrieveAPIView):
+    def get(self, request, *args, **kwargs):
+        pass
+
+
+# 트레이너에 대한 피드백 모아보기 (GET)
+class TrainerEvaluationView(generics.ListAPIView):
+    def get(self, request, *args, **kwargs):
+        pass
+
+    def list(self, request, *args, **kwargs):
         pass
