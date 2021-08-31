@@ -8,7 +8,7 @@ local_settings.py
 db.sqlite3
 myvenv/
 .idea
-key.json
 venv/
-.config/*
+.env
+secret_key.json
 static/*
