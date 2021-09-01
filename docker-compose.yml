@@ -1,0 +1,43 @@
+version: '3'
+services:
+  nginx:
+    container_name: nginx-container
+    build:
+      context: .
+      dockerfile: .ci-cd/config/nginx/Dockerfile
+    image: docker-server/nginx
+    restart: always
+    # container port mapping 정보
+    ports:
+      # 앞단 포트(서버에서 열리는): 뒤에 컨테이너에 전달되는 포트
+      - "80:80"
+    networks:  # connect to the bridge
+      - internal_network
+    volumes:
+      - ./:/Troy/
+      - ./log:/var/log/nginx
+#    depends_on:
+#      - django
+
+  django:
+    container_name: django-container
+    build:
+      # Dockerfile의 위치 지정
+      context: .
+      dockerfile: Dockerfile
+    image: docker-server/django
+    restart: always
+    expose:
+      - "8000"
+    networks:  # connect to the bridge
+      - internal_network
+    volumes:
+      # 현재 디렉토리(.)를 컨테이너 내의 app에 mount
+      - ./:/Troy/
+      - ./log:/var/log/uwsgi
+
+networks:
+  internal_network:
+    driver: bridge
+
+

@@ -16,10 +16,19 @@ Including another URLconf
 from django.conf import settings
 from django.contrib import admin
 from django.urls import path, include
+from rest_framework.response import Response
+from rest_framework.views import APIView
+
+
+class HealthCheckAPIView(APIView):
+    def get(self, request, *args, **kwargs):
+        return Response(data={"status": "ok"})
+
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('users/', include('users.urls')),
     path('oauth/', include('oauth.urls')),
     path('services/', include('services.urls')),
+    path("health/", HealthCheckAPIView.as_view(), name="health-check")
 ]
