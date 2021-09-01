@@ -49,6 +49,7 @@ class OnlineService(models.Model):
         db_table = 'online_service'
         verbose_name = "온라인 서비스"
         verbose_name_plural = verbose_name
+        get_latest_by = ['start_date']
 
 
 class OfflineService(models.Model):

@@ -1,5 +1,7 @@
 import json
 
+from django.forms import model_to_dict
+
 from rest_framework import generics, mixins, status
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
@@ -9,6 +11,9 @@ from .services import UserService
 from .serializer import (
     LoginSerializer, UserProfileCreateSerializer
 )
+from users.serializer import BodyInfoSerializer
+from services.models import *
+from services.serializer import GoalSerializer
 
 
 class LoginView(generics.CreateAPIView):
@@ -78,13 +83,34 @@ class TraineeProfileView(generics.RetrieveUpdateAPIView):
 
 # 트레이니 세부 프로필 (GET)
 class TraineeSubProfileView(generics.RetrieveAPIView):
+    permission_classes = (IsAuthenticated,)
+    lookup_field = 'pk'
+    lookup_url_kwarg = None
 
-    def get_queryset(self, trainer_pk):
-        return TraineeProfile.objects.get(pk=trainer_pk)
+    def get_queryset(self, user_pk):
+        return UserProfile.objects.prefetch_related('trainee_id').get(pk=user_pk)
 
     def get(self, request, *args, **kwargs):
-        # body_type, weight, height, goal(due_date, text_goal)
-        pass
+        # { body_type, weight, height }, { due_date, goal }
+        user_pk = self.kwargs['pk']
+
+        user = self.get_queryset(user_pk=user_pk)
+        trainee = user.trainee
+
+        body_info = trainee.body_info
+        online_service = Service.objects.get(trainee=trainee).onlineservice_set
+        goal = online_service.latest('start_date').goal
+
+        body_serializer = BodyInfoSerializer(data=model_to_dict(body_info))
+        body_serializer.is_valid(raise_exception=True)
+        goal_serializer = GoalSerializer(data=model_to_dict(goal))
+        goal_serializer.is_valid(raise_exception=True)
+
+        response = {
+            'body_info': body_serializer.data,
+            'goal': goal_serializer.data
+        }
+        return Response(response, status=status.HTTP_200_OK)
 
 
 # 트레이너 메인 프로필 조회(GET), 수정(PUT)
