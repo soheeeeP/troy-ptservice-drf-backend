@@ -24,6 +24,7 @@ class Service(models.Model):
         db_table = 'service'
         verbose_name = "서비스"
         verbose_name_plural = verbose_name
+        get_latest_by = ['start_date']
 
 
 class OnlineService(models.Model):

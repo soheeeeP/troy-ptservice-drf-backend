@@ -11,6 +11,7 @@ from .services import UserService
 from .serializer import (
     LoginSerializer, UserProfileCreateSerializer
 )
+from tags.serializer import HashTagSerializer
 from users.serializer import BodyInfoSerializer
 from services.models import *
 from services.serializer import GoalSerializer
@@ -68,14 +69,29 @@ class SignUpView(generics.GenericAPIView, mixins.CreateModelMixin, mixins.Update
 
 # 트레이니 메인 프로필 조회(GET), 수정(PUT)
 class TraineeProfileView(generics.RetrieveUpdateAPIView):
+    def __init__(self):
+        self.model = UserProfile
 
-    def get_queryset(self, trainee_pk):
-        return UserProfile.objects.prefetch_related('trainee_id').get(pk=trainee_pk)
+    def get_queryset(self, user_pk):
+        user = self.model.objects.values('username', 'nickname', 'profile_img', 'gender').get(pk=user_pk)
+        trainee = self.model.objects.select_related('trainee').get(pk=user_pk).trainee
+        return user, trainee
 
     def get(self, request, *args, **kwargs):
         # nickname, gender, profile_img, purpose_tag, coach_name
-        user = self.get_queryset(trainee_pk=self.kwargs['pk'])
-        print(user)
+        user_pk = self.kwargs['pk']
+
+        user_data, trainee = self.get_queryset(user_pk=user_pk)
+        tags = trainee.purpose.values_list('tag_content', flat=True)
+        trainer_data = Service.objects \
+            .values_list('trainer__userprofile__nickname', flat=True).filter(trainee=trainee).latest('start_date')
+
+        response = {
+            'user_profile': user_data,
+            'trainer_name': trainer_data,
+            'tag': list(tags)
+        }
+        return Response(response, status=status.HTTP_200_OK)
 
     def put(self, request, *args, **kwargs):
         pass
