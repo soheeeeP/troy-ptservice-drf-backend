@@ -69,6 +69,10 @@ class SignUpView(generics.GenericAPIView, mixins.CreateModelMixin, mixins.Update
 
 # 트레이니 메인 프로필 조회(GET), 수정(PUT)
 class TraineeProfileView(generics.RetrieveUpdateAPIView):
+    permission_classes = (IsAuthenticated,)
+    lookup_field = 'pk'
+    lookup_url_kwarg = None
+
     def __init__(self):
         self.model = UserProfile
 
@@ -94,6 +98,7 @@ class TraineeProfileView(generics.RetrieveUpdateAPIView):
         return Response(response, status=status.HTTP_200_OK)
 
     def put(self, request, *args, **kwargs):
+        # 수정할 정보 구체화 필요
         pass
 
 
@@ -104,7 +109,7 @@ class TraineeSubProfileView(generics.RetrieveAPIView):
     lookup_url_kwarg = None
 
     def get_queryset(self, user_pk):
-        return UserProfile.objects.select_related('trainee_id').get(pk=user_pk).trainee
+        return UserProfile.objects.select_related('trainee').get(pk=user_pk).trainee
 
     def get(self, request, *args, **kwargs):
         # { body_type, weight, height }, { due_date, goal }
@@ -133,6 +138,7 @@ class TrainerProfileView(generics.RetrieveUpdateAPIView):
         pass
 
     def put(self, request, *args, **kwargs):
+        # 수정할 정보 구체화 필요
         pass
 
 
