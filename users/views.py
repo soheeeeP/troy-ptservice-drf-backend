@@ -104,15 +104,13 @@ class TraineeSubProfileView(generics.RetrieveAPIView):
     lookup_url_kwarg = None
 
     def get_queryset(self, user_pk):
-        return UserProfile.objects.prefetch_related('trainee_id').get(pk=user_pk)
+        return UserProfile.objects.select_related('trainee_id').get(pk=user_pk).trainee
 
     def get(self, request, *args, **kwargs):
         # { body_type, weight, height }, { due_date, goal }
         user_pk = self.kwargs['pk']
 
-        user = self.get_queryset(user_pk=user_pk)
-        trainee = user.trainee
-
+        trainee = self.get_queryset(user_pk=user_pk)
         body_info = trainee.body_info
         online_service = Service.objects.get(trainee=trainee).onlineservice_set
         goal = online_service.latest('start_date').goal
