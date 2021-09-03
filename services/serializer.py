@@ -9,7 +9,7 @@ class GoalSerializer(serializers.ModelSerializer):
         fields = '__all__'
         
     def validate(self, attrs):
-        return super(GoalSerializer, self).validate(dict(attrs))
+        return dict(attrs)
     
     def create(self, validated_data):
         return super(GoalSerializer, self).create(validated_data)

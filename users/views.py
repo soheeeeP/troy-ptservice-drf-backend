@@ -3,6 +3,7 @@ import json
 from django.forms import model_to_dict
 
 from rest_framework import generics, mixins, status
+from rest_framework.generics import get_object_or_404
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 
@@ -12,6 +13,7 @@ from .serializer import (
     LoginSerializer, UserProfileCreateSerializer
 )
 from tags.serializer import HashTagSerializer
+from centers.serializer import CenterSerializer
 from users.serializer import BodyInfoSerializer
 from services.models import *
 from services.serializer import GoalSerializer
@@ -68,36 +70,37 @@ class SignUpView(generics.GenericAPIView, mixins.CreateModelMixin, mixins.Update
 
 
 # 트레이니 메인 프로필 조회(GET), 수정(PUT)
-class TraineeProfileView(generics.RetrieveUpdateAPIView):
+class TraineeProfileView(generics.RetrieveAPIView, mixins.UpdateModelMixin):
     permission_classes = (IsAuthenticated,)
     lookup_field = 'pk'
     lookup_url_kwarg = None
+    queryset = UserProfile.objects.select_related('trainee').all()
 
-    def __init__(self):
-        self.model = UserProfile
-
-    def get_queryset(self, user_pk):
-        user = self.model.objects.values('username', 'nickname', 'profile_img', 'gender').get(pk=user_pk)
-        trainee = self.model.objects.select_related('trainee').get(pk=user_pk).trainee
-        return user, trainee
-
-    def get(self, request, *args, **kwargs):
+    def retrieve(self, request, *args, **kwargs):
         # nickname, gender, profile_img, purpose_tag, coach_name
         user_pk = self.kwargs['pk']
-
-        user_data, trainee = self.get_queryset(user_pk=user_pk)
+        user_data = get_object_or_404(
+            self.get_queryset().values('username', 'nickname', 'profile_img', 'gender'),
+            pk=user_pk
+        )
+        trainee = self.get_object().trainee
         tags = trainee.purpose.values_list('tag_content', flat=True)
-        trainer_data = Service.objects \
-            .values_list('trainer__userprofile__nickname', flat=True).filter(trainee=trainee).latest('start_date')
-
         response = {
             'user_profile': user_data,
-            'trainer_name': trainer_data,
             'tag': list(tags)
         }
-        return Response(response, status=status.HTTP_200_OK)
+        try:
+            # exception handling (DoesNotExist)
+            # queryset에 .latest()를 적용하여 single instance의 value값을 tuple로 추출
+            trainer_data = Service.objects.filter(trainee=trainee)\
+                .values_list('trainer__userprofile__nickname', flat=True)\
+                .latest('start_date')
+            response['trainer'] = trainer_data
+            return Response(response, status=status.HTTP_200_OK)
+        except Service.DoesNotExist:
+            return Response(response, status=status.HTTP_200_OK)
 
-    def put(self, request, *args, **kwargs):
+    def update(self, request, *args, **kwargs):
         # 수정할 정보 구체화 필요
         pass
 
@@ -107,45 +110,80 @@ class TraineeSubProfileView(generics.RetrieveAPIView):
     permission_classes = (IsAuthenticated,)
     lookup_field = 'pk'
     lookup_url_kwarg = None
+    queryset = UserProfile.objects.select_related('trainee').all()
 
-    def get_queryset(self, user_pk):
-        return UserProfile.objects.select_related('trainee').get(pk=user_pk).trainee
-
-    def get(self, request, *args, **kwargs):
+    def retrieve(self, request, *args, **kwargs):
         # { body_type, weight, height }, { due_date, goal }
         user_pk = self.kwargs['pk']
 
-        trainee = self.get_queryset(user_pk=user_pk)
+        trainee = self.get_object().trainee
         body_info = trainee.body_info
-        online_service = Service.objects.get(trainee=trainee).onlineservice_set
-        goal = online_service.latest('start_date').goal
-
-        body_serializer = BodyInfoSerializer(data=model_to_dict(body_info))
-        body_serializer.is_valid(raise_exception=True)
-        goal_serializer = GoalSerializer(data=model_to_dict(goal))
-        goal_serializer.is_valid(raise_exception=True)
-
         response = {
-            'body_info': body_serializer.data,
-            'goal': goal_serializer.data
+            'body_info': BodyInfoSerializer(instance=body_info).data
         }
-        return Response(response, status=status.HTTP_200_OK)
+        try:
+            # exception handling (DoesNotExist)
+            # queryset에 .latest()를 적용하여 single instance(Service object)를 받아옴
+            service = Service.objects.prefetch_related('onlineservice_set').filter(trainee=trainee).latest('start_date')
+            if service.onlineservice_set.exists():
+                # onlineservice_set에 .latest()를 적용, single instance(OnlineService object)를 get
+                # OnlineService의 goal 객체(OneToOne)를 get
+                goal = service.onlineservice_set.latest('start_date').goal
+                response['goal'] = GoalSerializer(instance=goal).data
+                return Response(response, status=status.HTTP_200_OK)
+        except Service.DoesNotExist:
+            return Response(response, status=status.HTTP_200_OK)
 
 
 # 트레이너 메인 프로필 조회(GET), 수정(PUT)
-class TrainerProfileView(generics.RetrieveUpdateAPIView):
-    def get(self, request, *args, **kwargs):
-        pass
+class TrainerProfileView(generics.RetrieveAPIView, mixins.UpdateModelMixin):
+    permission_classes = (IsAuthenticated,)
+    lookup_field = 'pk'
+    lookup_url_kwarg = None
+    queryset = UserProfile.objects.select_related('trainer').all()
 
-    def put(self, request, *args, **kwargs):
+    def retrieve(self, request, *args, **kwargs):
+        user_pk = self.kwargs['pk']
+
+        user_data = get_object_or_404(
+            self.get_queryset().values('username', 'nickname', 'profile_img', 'gender'),
+            pk=user_pk
+        )
+        trainer = self.get_object().trainer
+        tags = trainer.specialty.values_list('tag_content', flat=True)
+        trainer_center_data = CenterSerializer(instance=trainer.center).data
+
+        response = {
+            'user_data': user_data,
+            'trainer_center': trainer_center_data,
+            'tags': list(tags)
+        }
+        return Response(response, status=status.HTTP_200_OK)
+
+    def update(self, request, *args, **kwargs):
         # 수정할 정보 구체화 필요
         pass
 
 
 # 트레이너 세부 프로필 (GET)
 class TrainerSubProfileView(generics.RetrieveAPIView):
-    def get(self, request, *args, **kwargs):
-        pass
+    permission_classes = (IsAuthenticated,)
+    lookup_field = 'pk'
+    lookup_url_kwarg = None
+    queryset = UserProfile.objects.select_related('trainer').all()
+
+    def retrieve(self, request, *args, **kwargs):
+        user_pk = self.kwargs['pk']
+
+        trainer = self.get_object().trainer
+        # response = {
+        #     "center point",
+        #     "description":,
+        #     "years_career":,
+        #     "license":,
+        #     "education":
+        # }
+        return Response(None, status=status.HTTP_200_OK)
 
 
 # 트레이너에 대한 피드백 모아보기 (GET)

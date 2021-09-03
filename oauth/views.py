@@ -16,7 +16,7 @@ from users.models import UserProfile
 class AuthView(generics.RetrieveAPIView):
     serializer_class = AuthDefaultSerializer
 
-    def get(self, request, *args, **kwargs):
+    def retrieve(self, request, *args, **kwargs):
         data = json.loads(request.body)
         response = {'validation': {}, 'user': {}}
 
