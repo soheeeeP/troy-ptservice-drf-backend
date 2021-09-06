@@ -46,7 +46,7 @@ class BodyInfoSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
     def validate(self, attrs):
-        return super(BodyInfoSerializer, self).validate(dict(attrs))
+        return dict(attrs)
 
     def create(self, validated_data):
         return super(BodyInfoSerializer, self).create(validated_data)
