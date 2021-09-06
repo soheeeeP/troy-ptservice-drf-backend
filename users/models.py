@@ -173,7 +173,7 @@ class TraineeProfile(models.Model):
 
     class Meta:
         db_table = 'trainee_profile'
-        verbose_name = '트레이너'
+        verbose_name = '트레이니'
         verbose_name_plural = verbose_name
 
 
@@ -197,5 +197,5 @@ class TrainerProfile(models.Model):
 
     class Meta:
         db_table = 'trainer_profile'
-        verbose_name = '트레이니'
+        verbose_name = '트레이너'
         verbose_name_plural = verbose_name

@@ -9,4 +9,4 @@ class CenterSerializer(serializers.ModelSerializer):
         fields = '__all__'
     
     def validate(self, attrs):
-        return super(CenterSerializer, self).validate(attrs)
+        return attrs
