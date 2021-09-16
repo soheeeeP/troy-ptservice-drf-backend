@@ -1,4 +1,5 @@
-# _ProfileSerializer들의 경우, 필요한 정보만 뽑아오도록 수정할 필요가 있음
+import typing
+
 from django.db import transaction
 from django.contrib.auth import authenticate
 from django.contrib.auth.models import update_last_login
@@ -6,11 +7,12 @@ from django.contrib.auth.models import update_last_login
 from rest_framework import serializers
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from .models import UserProfile, TraineeProfile, TrainerProfile, BodyInfo
+from .models import UserProfile, TraineeProfile, CoachProfile, BodyInfo
 
 from centers.models import Center
 from centers.serializer import CenterSerializer
 from oauth.serializer import AuthCreateSerializer
+from services.serializer import GoalSerializer, ServiceDetailSerializer
 from tags.models import HashTag
 from tags.serializer import HashTagSerializer
 
@@ -52,16 +54,27 @@ class BodyInfoSerializer(serializers.ModelSerializer):
         return super(BodyInfoSerializer, self).create(validated_data)
 
 
-class TraineeProfileSerializer(serializers.ModelSerializer):
-    body_info = BodyInfoSerializer()
-    purpose = HashTagSerializer(many=True)
-
+class UserProfileDefaultSerializer(ServiceDetailSerializer, serializers.ModelSerializer):
     class Meta:
-        model = TraineeProfile
-        fields = '__all__'
+        model = UserProfile
+        fields = ['id', 'username', 'nickname', 'gender', 'birth_year', 'profile_img']
 
     def validate(self, attrs):
-        return attrs
+        super(UserProfileDefaultSerializer, self).validate(attrs)
+
+
+class TraineeSubProfileSerializer(serializers.ModelSerializer):
+    purpose = HashTagSerializer(many=True)
+    body_info = serializers.SerializerMethodField()
+    goal = serializers.SerializerMethodField()
+
+    @staticmethod
+    def get_body_info(obj: TraineeProfile) -> typing.Optional[BodyInfoSerializer]:
+        if BodyInfo.objects.filter(trainee_profile=obj).exists() is not True:
+            return None
+
+        body_info = BodyInfo.objects.filter(trainee_profile=obj).latest('date')
+        return BodyInfoSerializer(instance=body_info).data
 
 
 class TraineeProfileCreateSerializer(serializers.ModelSerializer):
@@ -89,24 +102,21 @@ class TraineeProfileCreateSerializer(serializers.ModelSerializer):
         return trainee, trainee.pk
 
 
-class TrainerProfileSerializer(serializers.ModelSerializer):
-    center = CenterSerializer()
-    specialty = HashTagSerializer(many=True)
+class CoachSubProfileSerializer(serializers.ModelSerializer):
+    specialty = HashTagSerializer(many=True, read_only=False)
+    center = CenterSerializer(read_only=False)
 
     class Meta:
-        model = TrainerProfile
-        fields = '__all__'
-
-    def validate(self, attrs):
-        return attrs
+        model = CoachProfile
+        fields = ['specialty', 'years_career', 'license', 'education', 'center']
 
 
-class TrainerProfileCreateSerializer(serializers.ModelSerializer):
+class CoachProfileCreateSerializer(serializers.ModelSerializer):
     center = CenterSerializer(read_only=False)
     specialty = HashTagSerializer(many=True, read_only=False)
 
     class Meta:
-        model = TrainerProfile
+        model = CoachProfile
         fields = '__all__'
 
     def create(self, validated_data):
@@ -119,33 +129,21 @@ class TrainerProfileCreateSerializer(serializers.ModelSerializer):
         for t in tags_obj:
             t.save()
 
-        trainer = TrainerProfile.objects.create(center=center_obj)
-        trainer.specialty.add(*tags_obj)
-        trainer.save()
+        coach = CoachProfile.objects.create(center=center_obj)
+        coach.specialty.add(*tags_obj)
+        coach.save()
 
-        return trainer, trainer.pk
-
-
-class UserProfileDefaultSerializer(serializers.ModelSerializer):
-    trainee = TraineeProfileSerializer(read_only=True)
-    trainer = TrainerProfileSerializer(read_only=True)
-
-    class Meta:
-        model = UserProfile
-        fields = ['email', 'username', 'nickname', 'gender', 'birth_year', 'profile_img', 'trainee', 'trainer']
-
-    def validate(self, attrs):
-        super(UserProfileDefaultSerializer, self).validate(attrs)
+        return coach, coach.pk
 
 
 class UserProfileCreateSerializer(serializers.ModelSerializer):
     oauth = AuthCreateSerializer()
-    trainee = TraineeProfileSerializer(read_only=False)
-    trainer = TrainerProfileSerializer(read_only=False)
+    trainee = TraineeProfileCreateSerializer(read_only=False)
+    coach = CoachProfileCreateSerializer(read_only=False)
 
     class Meta:
         model = UserProfile
-        fields = ['email', 'oauth', 'username', 'nickname', 'gender', 'birth_year', 'user_type', 'trainee', 'trainer']
+        fields = ['email', 'oauth', 'username', 'nickname', 'gender', 'birth_year', 'user_type', 'trainee', 'coach']
 
     def create(self, validated_data):
         # 1. oauth정보의 유효성을 검증한 뒤, create action을 수행하는 serializer를 호출
@@ -171,7 +169,7 @@ class UserProfileCreateSerializer(serializers.ModelSerializer):
             if not created:
                 raise serializers.ValidationError('user with this email addr already exists')
 
-            # 3. user_type에 따라 TraineeProfile/TrainerProfile serialize화, 객체 생성
+            # 3. user_type에 따라 TraineeProfile/CoachProfile serialize화, 객체 생성
             user_info = validated_data.pop(user.user_type)
             if user.user_type == 'trainee':
                 trainee_serializer = TraineeProfileCreateSerializer(data=user_info, partial=True)
@@ -179,10 +177,10 @@ class UserProfileCreateSerializer(serializers.ModelSerializer):
                 trainee_obj, pk = trainee_serializer.save()
                 user.trainee = trainee_obj
             else:
-                trainer_serializer = TrainerProfileCreateSerializer(data=user_info, partial=True)
-                trainer_serializer.is_valid(raise_exception=True)
-                trainer_obj, pk = trainer_serializer.save()
-                user.trainer = trainer_obj
+                coach_serializer = CoachProfileCreateSerializer(data=user_info, partial=True)
+                coach_serializer.is_valid(raise_exception=True)
+                coach_obj, pk = coach_serializer.save()
+                user.coach = coach_obj
             user.save()
 
             return user, user.pk

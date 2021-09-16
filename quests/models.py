@@ -5,11 +5,11 @@ from django.core.validators import MinValueValidator, MaxValueValidator
 
 
 class Quest(models.Model):
-    online_service = models.ForeignKey(
-        "services.OnlineService",
+    service = models.ForeignKey(
+        "services.Service",
         on_delete=models.CASCADE,
         default=True,
-        verbose_name='온라인 서비스'
+        verbose_name='서비스'
     )
     date = models.DateTimeField(
         auto_now=True,
@@ -21,10 +21,11 @@ class Quest(models.Model):
         null=True,
         verbose_name='식단퀘스트'
     )
-    workout = models.ManyToManyField(
+    workout = models.OneToOneField(
         'Workout',
-        verbose_name='운동퀘스트',
-
+        on_delete=models.SET_NULL,
+        null=True,
+        verbose_name='운동퀘스트'
     )
     rate_feedback = models.PositiveSmallIntegerField(
         validators=[MinValueValidator(0), MaxValueValidator(5)],
@@ -37,6 +38,18 @@ class Quest(models.Model):
         verbose_name='피드백',
         null=True
     )
+    meal_score = models.DecimalField(
+        max_digits=4,
+        decimal_places=2,
+        default=0.0,
+        verbose_name='식단 달성률'
+    )
+    workout_score = models.DecimalField(
+        max_digits=4,
+        decimal_places=2,
+        default=0.0,
+        verbose_name='운동 달성률'
+    )
 
     class Meta:
         db_table = 'quest'
@@ -45,29 +58,17 @@ class Quest(models.Model):
 
 
 class MealPlanner(models.Model):
-    breakfast = models.CharField(
-        max_length=255,
+    breakfast = models.JSONField(
+        default=dict(),
         verbose_name='아침'
     )
-    breakfast_clear = models.BooleanField(
-        default=False,
-        verbose_name='아침퀘스트 달성여부'
-    )
-    lunch = models.CharField(
-        max_length=255,
+    lunch = models.JSONField(
+        default=dict(),
         verbose_name='점심'
     )
-    lunch_clear = models.BooleanField(
-        default=False,
-        verbose_name='아침퀘스트 달성여부'
-    )
-    dinner = models.CharField(
-        max_length=255,
+    dinner = models.JSONField(
+        default=dict(),
         verbose_name='저녁'
-    )
-    dinner_clear = models.BooleanField(
-        default=False,
-        verbose_name='아침퀘스트 달성여부'
     )
 
     class Meta:
@@ -77,10 +78,9 @@ class MealPlanner(models.Model):
 
 
 class Workout(models.Model):
-    workout_content = models.TextField(verbose_name='운동퀘스트')
-    workout_clear = models.BooleanField(
-        default=False,
-        verbose_name='운동퀘스트 달성여부'
+    workout_content = models.JSONField(
+        default=dict(),
+        verbose_name='운동퀘스트'
     )
 
     class Meta:
@@ -90,3 +90,4 @@ class Workout(models.Model):
 
     def __str__(self):
         return f'{self.workout_content}[:20]...'
+

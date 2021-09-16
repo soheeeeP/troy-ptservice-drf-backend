@@ -50,7 +50,7 @@ class UserProfile(AbstractUser):
     )
     USER_CHOICES = Choices(
         ('trainee', '트레이니'),
-        ('trainer', '트레이너')
+        ('coach', '코치')
     )
     email = models.EmailField(
         unique=True,
@@ -103,8 +103,8 @@ class UserProfile(AbstractUser):
         null=True,
         verbose_name='트레이니 프로필'
     )
-    trainer = models.OneToOneField(
-        'TrainerProfile',
+    coach = models.OneToOneField(
+        'CoachProfile',
         on_delete=models.CASCADE,
         blank=True,
         null=True,
@@ -153,18 +153,25 @@ class BodyInfo(models.Model):
         decimal_places=2,
         verbose_name='몸무게'
     )
+    date = models.DateField(
+        auto_now_add=True,
+        blank=True,
+        null=True
+    )
 
     class Meta:
         db_table = 'bodyinfo'
         verbose_name = '체형정보'
         verbose_name_plural = verbose_name
+        get_latest_by = ['date']
 
 
 class TraineeProfile(models.Model):
-    body_info = models.OneToOneField(
+    body_info = models.ForeignKey(
         'BodyInfo',
         on_delete=models.CASCADE,
-        related_name='trainee_profile'
+        related_name='trainee_profile',
+        null=True
     )
     purpose = models.ManyToManyField(
         HashTag,
@@ -177,7 +184,7 @@ class TraineeProfile(models.Model):
         verbose_name_plural = verbose_name
 
 
-class TrainerProfile(models.Model):
+class CoachProfile(models.Model):
     specialty = models.ManyToManyField(
         HashTag,
         through='tags.SpecialtyTag',
@@ -190,12 +197,12 @@ class TrainerProfile(models.Model):
     education = models.TextField()
     center = models.ForeignKey(
         'centers.Center',
-        related_name='trainer_profile',
+        related_name='coach_profile',
         on_delete=models.CASCADE,
         null=True
     )
 
     class Meta:
-        db_table = 'trainer_profile'
-        verbose_name = '트레이너'
+        db_table = 'coach_profile'
+        verbose_name = '코치'
         verbose_name_plural = verbose_name

@@ -7,12 +7,9 @@ urlpatterns = [
     path('signup', SignUpView.as_view(), name='signup'),
     path('login', LoginView.as_view(), name='login'),
 
-    path('profile/trainee/<int:pk>', TraineeProfileView.as_view(), name='trainee_profile'),
-    path('profile/trainee/<int:pk>/edit', TrainerProfileView.as_view(), name='edit_trainee_profile'),
+    path('profile/<int:pk>', UserProfileView.as_view(), name='main_profile'),
+    path('profile/<int:pk>/edit', UserProfileView.as_view(), name='edit_main_profile'),
     path('profile/trainee/<int:pk>/sub', TraineeSubProfileView.as_view(), name='trainee_sub_profile'),
-
-    path('profile/trainer/<int:pk>', TrainerProfileView.as_view(), name='trainer_profile'),
-    path('profile/trainer/<int:pk>/edit', TrainerProfileView.as_view(), name='edit_trainer_profile'),
-    path('profile/trainer/<int:pk>/sub', TrainerSubProfileView.as_view(), name='trainer_sub_profile'),
-    path('profile/trainer/<int:pk>/evaluation', TrainerEvaluationView.as_view(), name='trainer_evaluation'),
+    path('profile/coach/<int:pk>/sub', CoachSubProfileView.as_view(), name='coach_sub_profile'),
+    path('profile/coach/<int:pk>/evaluation', CoachEvaluationView.as_view(), name='coach_evaluation'),
 ]

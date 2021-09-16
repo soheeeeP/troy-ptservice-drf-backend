@@ -1,12 +1,14 @@
 from django.db import models
 from django.core.validators import MinValueValidator, MaxValueValidator
 
+from tags.models import HashTag
+
 
 class Service(models.Model):
-    trainer = models.ForeignKey(
-        'users.TrainerProfile',
+    coach = models.ForeignKey(
+        'users.CoachProfile',
         on_delete=models.CASCADE,
-        verbose_name='트레이너'
+        verbose_name='코치'
     )
     trainee = models.ForeignKey(
         'users.TraineeProfile',
@@ -19,6 +21,18 @@ class Service(models.Model):
     end_date = models.DateField(
         null=True
     )
+    evaluation = models.OneToOneField(
+        'Evaluation',
+        on_delete=models.CASCADE,
+        null=True,
+        verbose_name='평가'
+    )
+    goal = models.OneToOneField(
+        'Goal',
+        on_delete=models.CASCADE,
+        null=True,
+        verbose_name='목표'
+    )
 
     class Meta:
         db_table = 'service'
@@ -27,33 +41,7 @@ class Service(models.Model):
         get_latest_by = ['start_date']
 
 
-class OnlineService(models.Model):
-    service = models.ForeignKey(
-        'Service',
-        on_delete=models.CASCADE,
-        verbose_name='서비스'
-    )
-    evaluation = models.OneToOneField(
-        'Evaluation',
-        on_delete=models.CASCADE,
-        null=True,
-        verbose_name='평가'
-    )
-    start_date = models.DateField()
-    end_date = models.DateField()
-    goal = models.OneToOneField(
-        'Goal',
-        on_delete=models.CASCADE
-    )
-
-    class Meta:
-        db_table = 'online_service'
-        verbose_name = "온라인 서비스"
-        verbose_name_plural = verbose_name
-        get_latest_by = ['start_date']
-
-
-class OfflineService(models.Model):
+class Class(models.Model):
     service = models.ForeignKey(
         'Service',
         on_delete=models.CASCADE,
@@ -96,8 +84,9 @@ class Evaluation(models.Model):
 
 class Goal(models.Model):
     due_date = models.DateField()
-    text_goal = models.CharField(
-        max_length=20
+    tag = models.ManyToManyField(
+        HashTag,
+        through="tags.GoalTag",
     )
 
     class Meta:

@@ -26,8 +26,8 @@ class HashTag(models.Model):
 
 
 class SpecialtyTag(models.Model):
-    trainer = models.ForeignKey(
-        "users.TrainerProfile",
+    coach = models.ForeignKey(
+        "users.CoachProfile",
         on_delete=models.CASCADE
     )
     tag = models.ForeignKey(
