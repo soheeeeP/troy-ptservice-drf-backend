@@ -25,13 +25,13 @@ INSTALLED_APPS = [
     'django.contrib.gis',
 
     # apps
-    'oauth',
-    'users',
-    'quests',
-    'centers',
-    'services',
-    'tags',
-    'schedule',
+    'apps.oauth',
+    'apps.users',
+    'apps.quests',
+    'apps.centers',
+    'apps.programs',
+    'apps.tags',
+    'apps.schedule',
 
     # modules
     'rest_framework',

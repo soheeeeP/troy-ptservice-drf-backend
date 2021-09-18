@@ -27,8 +27,6 @@ class HealthCheckAPIView(APIView):
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('users/', include('users.urls')),
-    path('oauth/', include('oauth.urls')),
-    path('services/', include('services.urls')),
+    path('api/', include('api.urls')),
     path("health/", HealthCheckAPIView.as_view(), name="health-check")
 ]
