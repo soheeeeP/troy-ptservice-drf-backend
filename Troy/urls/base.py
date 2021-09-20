@@ -16,8 +16,28 @@ Including another URLconf
 from django.conf import settings
 from django.contrib import admin
 from django.urls import path, include
+
+from rest_framework import permissions
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework_simplejwt import authentication
+
+from drf_yasg.views import get_schema_view
+from drf_yasg import openapi
+
+
+schema_view = get_schema_view(
+    info=openapi.Info(
+        title='Troy backend API',
+        default_version='v1',
+        description='Troy 서비스 백엔드 API 문서',
+        contact=openapi.Contact(email='mtom.troy21@gmail.com'),
+        license=openapi.License(name='M-TO-M License'),
+    ),
+    public=True,
+    authentication_classes=(authentication.JWTAuthentication,),
+    permission_classes=(permissions.AllowAny,),
+)
 
 
 class HealthCheckAPIView(APIView):
@@ -28,5 +48,7 @@ class HealthCheckAPIView(APIView):
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/', include('api.urls')),
-    path("health/", HealthCheckAPIView.as_view(), name="health-check")
+    path("health/", HealthCheckAPIView.as_view(), name="health-check"),
+    path('troy/swagger/', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
+    path('troy/docs/', schema_view.with_ui('redoc', cache_timeout=0), name='schema-redoc'),
 ]

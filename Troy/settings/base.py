@@ -38,6 +38,8 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt',
     'dj_rest_auth',
     'dj_rest_auth.registration',
+
+    'drf_yasg',
 ]
 
 MIDDLEWARE = [
@@ -112,6 +114,17 @@ SIMPLE_JWT = {
 JWT_AUTH_COOKIE = 'troy-auth'
 
 JWT_AUTH_REFRESH_COOKIE = 'troy-refresh-token'
+
+SWAGGER_SETTINGS = {
+    'SECURITY_DEFINITIONS': {
+        'Bearer': {
+            'type': 'apiKey',
+            'name': 'Authorization',
+            'in': 'header'
+        }
+    }
+}
+
 
 # Password validation
 # https://docs.djangoproject.com/en/3.2/ref/settings/#auth-password-validators

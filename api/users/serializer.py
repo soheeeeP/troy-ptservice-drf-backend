@@ -63,10 +63,9 @@ class UserProfileDefaultSerializer(ProgramDetailSerializer, serializers.ModelSer
         super(UserProfileDefaultSerializer, self).validate(attrs)
 
 
-class TraineeSubProfileSerializer(serializers.ModelSerializer):
+class TraineeSubProfileSerializer(serializers.Serializer):
     purpose = HashTagSerializer(many=True)
     body_info = serializers.SerializerMethodField()
-    goal = serializers.SerializerMethodField()
 
     @staticmethod
     def get_body_info(obj: TraineeProfile) -> typing.Optional[BodyInfoSerializer]:

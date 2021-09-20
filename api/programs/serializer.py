@@ -28,16 +28,12 @@ class GoalSerializer(serializers.ModelSerializer):
         return super(GoalSerializer, self).create(validated_data)
 
 
-class ProgramDetailSerializer(serializers.ModelSerializer):
+class ProgramDetailSerializer(serializers.Serializer):
     coach = serializers.SerializerMethodField()
     program = serializers.SerializerMethodField()
     goal = serializers.SerializerMethodField()
     quest = serializers.SerializerMethodField()
     total_score = serializers.SerializerMethodField()
-
-    class Meta:
-        model = Program
-        fields = ['coach']
 
     @staticmethod
     def get_program(obj: TraineeProfile) -> typing.Optional[Program]:
