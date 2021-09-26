@@ -25,19 +25,21 @@ INSTALLED_APPS = [
     'django.contrib.gis',
 
     # apps
-    'oauth',
-    'users',
-    'quests',
-    'centers',
-    'services',
-    'tags',
-    'schedule',
+    'apps.oauth',
+    'apps.users',
+    'apps.quests',
+    'apps.centers',
+    'apps.programs',
+    'apps.tags',
+    'apps.schedule',
 
     # modules
     'rest_framework',
     'rest_framework_simplejwt',
     'dj_rest_auth',
     'dj_rest_auth.registration',
+
+    'drf_yasg',
 ]
 
 MIDDLEWARE = [
@@ -79,7 +81,7 @@ WSGI_APPLICATION = 'Troy.wsgi.application'
 # https://www.django-rest-framework.org/
 REST_FRAMEWORK = {
     'DEFAULT_RENDERER_CLASSES': [
-        'Troy.renderer.ResponseRenderer',
+        'utils.renderer.ResponseRenderer',
         'rest_framework.renderers.JSONRenderer',
         'rest_framework.renderers.BrowsableAPIRenderer',
     ],
@@ -113,6 +115,17 @@ JWT_AUTH_COOKIE = 'troy-auth'
 
 JWT_AUTH_REFRESH_COOKIE = 'troy-refresh-token'
 
+SWAGGER_SETTINGS = {
+    'SECURITY_DEFINITIONS': {
+        'Bearer': {
+            'type': 'apiKey',
+            'name': 'Authorization',
+            'in': 'header'
+        }
+    }
+}
+
+
 # Password validation
 # https://docs.djangoproject.com/en/3.2/ref/settings/#auth-password-validators
 AUTH_PASSWORD_VALIDATORS = [
@@ -135,7 +148,6 @@ SITE_ID = 1
 
 AUTHENTICATION_BACKENDS = {
     'django.contrib.auth.backends.ModelBackend',
-    'Troy.backend.PasswordlessBackend',
 }
 
 # Internationalization
