@@ -1,6 +1,6 @@
 from django.urls import path
 
-from .views import *
+from api.users.views import *
 
 app_name = 'users'
 urlpatterns = [
@@ -11,5 +11,4 @@ urlpatterns = [
     path('profile/<int:pk>/edit', UserProfileView.as_view(), name='edit_main_profile'),
     path('profile/trainee/<int:pk>/sub', TraineeSubProfileView.as_view(), name='trainee_sub_profile'),
     path('profile/coach/<int:pk>/sub', CoachSubProfileView.as_view(), name='coach_sub_profile'),
-    path('profile/coach/<int:pk>/evaluation', CoachEvaluationView.as_view(), name='coach_evaluation'),
 ]

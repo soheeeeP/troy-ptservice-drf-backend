@@ -87,11 +87,11 @@ class RescheduleRequest(models.Model):
         validators=[MinValueValidator(0), MaxValueValidator(24)],
         default=0
     )
-    pub_datetime = models.DateTimeField(
+    created_at = models.DateTimeField(
         auto_now_add=True,
         verbose_name='변경요청 시간'
     )
-    fixed_datetime = models.DateTimeField(
+    fixed_at = models.DateTimeField(
         auto_now=True,
         verbose_name='요청응답 시간'
     )

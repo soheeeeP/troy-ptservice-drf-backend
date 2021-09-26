@@ -9,9 +9,9 @@ class Quest(models.Model):
         "programs.Program",
         on_delete=models.CASCADE,
         default=True,
-        verbose_name='서비스'
+        verbose_name='프로그램'
     )
-    date = models.DateTimeField(
+    created_at = models.DateTimeField(
         auto_now=True,
         verbose_name='퀘스트 생성일자'
     )
@@ -59,15 +59,15 @@ class Quest(models.Model):
 
 class MealPlanner(models.Model):
     breakfast = models.JSONField(
-        default=dict(),
+        default=list,
         verbose_name='아침'
     )
     lunch = models.JSONField(
-        default=dict(),
+        default=list,
         verbose_name='점심'
     )
     dinner = models.JSONField(
-        default=dict(),
+        default=list,
         verbose_name='저녁'
     )
 
@@ -79,7 +79,7 @@ class MealPlanner(models.Model):
 
 class Workout(models.Model):
     workout_content = models.JSONField(
-        default=dict(),
+        default=list,
         verbose_name='운동퀘스트'
     )
 

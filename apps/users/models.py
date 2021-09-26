@@ -151,7 +151,7 @@ class BodyInfo(models.Model):
         decimal_places=2,
         verbose_name='몸무게'
     )
-    date = models.DateField(
+    created_at = models.DateField(
         auto_now_add=True,
         blank=True,
         null=True
@@ -161,7 +161,7 @@ class BodyInfo(models.Model):
         db_table = 'bodyinfo'
         verbose_name = '체형정보'
         verbose_name_plural = verbose_name
-        get_latest_by = ['date']
+        get_latest_by = ['created_at']
 
 
 class TraineeProfile(models.Model):
@@ -191,7 +191,12 @@ class CoachProfile(models.Model):
         default=0,
         validators=[MinValueValidator(0), MaxValueValidator(10)]
     )
-    license = models.BooleanField(default=False)
+    license = models.JSONField(
+        default=list,
+        null=True,
+        blank=True,
+        verbose_name='자격증'
+    )
     education = models.TextField()
     center = models.ForeignKey(
         'centers.Center',

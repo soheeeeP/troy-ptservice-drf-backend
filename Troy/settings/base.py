@@ -81,7 +81,7 @@ WSGI_APPLICATION = 'Troy.wsgi.application'
 # https://www.django-rest-framework.org/
 REST_FRAMEWORK = {
     'DEFAULT_RENDERER_CLASSES': [
-        'Troy.renderer.ResponseRenderer',
+        'utils.renderer.ResponseRenderer',
         'rest_framework.renderers.JSONRenderer',
         'rest_framework.renderers.BrowsableAPIRenderer',
     ],
@@ -148,7 +148,6 @@ SITE_ID = 1
 
 AUTHENTICATION_BACKENDS = {
     'django.contrib.auth.backends.ModelBackend',
-    'Troy.backend.PasswordlessBackend',
 }
 
 # Internationalization

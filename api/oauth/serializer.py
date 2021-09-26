@@ -4,12 +4,9 @@ from apps.oauth.models import Auth
 
 
 class AuthDefaultSerializer(serializers.Serializer):
-    provider = serializers.ChoiceField(choices=['google', 'kakao', 'naver'])
-    id_token = serializers.CharField()
-    access_token = serializers.CharField()
-    oauth = serializers.CharField()
-    email = serializers.EmailField()
-    username = serializers.CharField()
+    provider = serializers.ChoiceField(choices=['google', 'kakao', 'naver'], help_text='oauth provider')
+    id_token = serializers.CharField(help_text='oauth token')
+    oauth_token = serializers.CharField(help_text='oauth id')
 
     def validate(self, attrs):
         return attrs

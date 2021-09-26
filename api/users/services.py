@@ -1,5 +1,12 @@
 import os, requests
 
+
+from apps.users.models import UserProfile
+from api.users.serializer import (
+    LoginSerializer,
+    UserProfileSerializer, CoachProfileDefaultSerializer, TraineeProfileDefaultSerializer
+)
+
 from Troy.settings import base
 
 
@@ -23,6 +30,18 @@ class UserService(object):
             self.user_type: self.user_type_info,
         }
         return user_dict
+
+    @staticmethod
+    def set_login_signup_response_info(user: UserProfile, user_type: str, **kwargs):
+        response = {
+            'user': UserProfileSerializer(instance=user).data,
+            'token': LoginSerializer().get_token(user=user),
+        }
+        if user_type == UserProfile.USER_CHOICES.coach:
+            response[user_type] = CoachProfileDefaultSerializer(instance=user.coach).data
+        else:
+            response[user_type] = TraineeProfileDefaultSerializer(instance=user.trainee).data
+        return response
 
     @staticmethod
     def save_img_from_url(self, img_id, url):

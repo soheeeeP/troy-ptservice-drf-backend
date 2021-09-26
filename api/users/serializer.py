@@ -1,14 +1,16 @@
 import typing
 
 from django.db import transaction
-from django.contrib.auth import authenticate
 from django.contrib.auth.models import update_last_login
 
 from rest_framework import serializers
+from rest_framework.request import Request
+
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from apps.users.models import UserProfile, TraineeProfile, CoachProfile, BodyInfo
 
+from apps.oauth.models import Auth
 from apps.centers.models import Center
 from api.centers.serializer import CenterSerializer
 from api.oauth.serializer import AuthCreateSerializer
@@ -17,29 +19,32 @@ from apps.tags.models import HashTag
 from api.tags.serializer import HashTagSerializer
 
 from Troy.settings import base
+from utils.authentication import TroyJWTAUthentication
 
 
 class LoginSerializer(serializers.Serializer):
-    email = serializers.EmailField()
-    access = serializers.CharField(read_only=True)
-    refresh = serializers.CharField(read_only=True)
+    user = serializers.SerializerMethodField()
+    token = serializers.SerializerMethodField()
 
-    def validate(self, attrs):
-        user = authenticate(email=attrs['email'])
-        # print(user)
+    @staticmethod
+    def get_user(request: Request) -> typing.Optional[UserProfile]:
+        jwt_auth = TroyJWTAUthentication()
+        user, validated_token = jwt_auth.authenticate(request=request)
         if user is None:
             raise serializers.ValidationError('invalid login credentials')
+        return user
 
-        refresh = RefreshToken.for_user(user)
-        data = super().validate(attrs)
-        data['refresh'] = str(refresh)
-        data['access'] = str(refresh.access_token)
-        # print(data)
-
+    @staticmethod
+    def get_token(user: UserProfile) -> typing.Optional[dict]:
         if base.SIMPLE_JWT['UPDATE_LAST_LOGIN'] is True:
             update_last_login(None, user)
 
-        return data
+        refresh = RefreshToken.for_user(user)
+        token = {
+            'refresh': str(refresh),
+            'access': str(refresh.access_token)
+        }
+        return token
 
 
 class BodyInfoSerializer(serializers.ModelSerializer):
@@ -54,13 +59,19 @@ class BodyInfoSerializer(serializers.ModelSerializer):
         return super(BodyInfoSerializer, self).create(validated_data)
 
 
-class UserProfileDefaultSerializer(ProgramDetailSerializer, serializers.ModelSerializer):
+class UserProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = UserProfile
         fields = ['id', 'username', 'nickname', 'gender', 'birth_year', 'profile_img']
 
     def validate(self, attrs):
-        super(UserProfileDefaultSerializer, self).validate(attrs)
+        super(UserProfileSerializer, self).validate(attrs)
+
+
+class TraineeProfileDefaultSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = TraineeProfile
+        fields = ['id']
 
 
 class TraineeSubProfileSerializer(serializers.Serializer):
@@ -101,6 +112,12 @@ class TraineeProfileCreateSerializer(serializers.ModelSerializer):
         return trainee, trainee.pk
 
 
+class CoachProfileDefaultSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CoachProfile
+        fields = ['id']
+
+
 class CoachSubProfileSerializer(serializers.ModelSerializer):
     specialty = HashTagSerializer(many=True, read_only=False)
     center = CenterSerializer(read_only=False)
@@ -135,7 +152,7 @@ class CoachProfileCreateSerializer(serializers.ModelSerializer):
         return coach, coach.pk
 
 
-class UserProfileCreateSerializer(serializers.ModelSerializer):
+class SignUpSerializer(serializers.ModelSerializer):
     oauth = AuthCreateSerializer()
     trainee = TraineeProfileCreateSerializer(read_only=False)
     coach = CoachProfileCreateSerializer(read_only=False)
@@ -143,6 +160,27 @@ class UserProfileCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = UserProfile
         fields = ['email', 'oauth', 'username', 'nickname', 'gender', 'birth_year', 'user_type', 'trainee', 'coach']
+
+    def validate_oauth(self, value):
+        try:
+            oauth = Auth.objects.get(oauth_token__exact=value['oauth_token'])
+            raise serializers.ValidationError('this oauth-token already exists')
+        except Auth.DoesNotExist:
+            return value
+
+    def validate_email(self, value):
+        try:
+            user = self.Meta.model.objects.get(email=value)
+            raise serializers.ValidationError('this email already exists')
+        except self.Meta.model.DoesNotExist:
+            return value
+
+    def validate_nickname(self, value):
+        try:
+            user = self.Meta.model.objects.get(nickname=value)
+            raise serializers.ValidationError('this nickname already exists')
+        except self.Meta.model.DoesNotExist:
+            return value
 
     def create(self, validated_data):
         # 1. oauth정보의 유효성을 검증한 뒤, create action을 수행하는 serializer를 호출
@@ -183,3 +221,10 @@ class UserProfileCreateSerializer(serializers.ModelSerializer):
             user.save()
 
             return user, user.pk
+
+
+class LoginSignUpResponseSerializer(serializers.Serializer):
+    user = UserProfileSerializer(read_only=True)
+    token = LoginSerializer(read_only=True)
+    trainee = TraineeProfileDefaultSerializer(read_only=True)
+    coach = CoachProfileDefaultSerializer(read_only=True)
