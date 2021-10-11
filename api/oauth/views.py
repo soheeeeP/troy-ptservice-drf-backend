@@ -20,8 +20,11 @@ from apps.users.models import UserProfile
 # access_token 및 id_token 권한인증(GET)
 class AuthView(generics.GenericAPIView, mixins.CreateModelMixin):
     serializer_class = AuthDefaultSerializer
+    authentication_classes = []
+    queryset = Auth.objects.all()
 
-    def __init__(self):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
         self.response = {
             'validation': {
                 'provider': True,
@@ -57,11 +60,10 @@ class AuthView(generics.GenericAPIView, mixins.CreateModelMixin):
     )
     def post(self, request, *args, **kwargs):
         data = json.loads(request.body)
-
         try:
-            Auth.objects.get(
+            self.queryset.get(
                 Q(oauth_type=data['provider']),
-                Q(oauth_token=data['oauth_token'])
+                Q(oauth_token__exact=data['oauth_token'])
             )
             self.response['new_user'] = False
             return Response(self.response, status=status.HTTP_403_FORBIDDEN)
@@ -71,6 +73,7 @@ class AuthView(generics.GenericAPIView, mixins.CreateModelMixin):
         auth_serializer = self.serializer_class(data=data)
         auth_serializer.is_valid(raise_exception=True)
         auth_serialized_data = auth_serializer.data
+        print(auth_serialized_data)
 
         provider_validation = AuthService(data=None).authenticate_provider(provider=auth_serialized_data['provider'])
         if provider_validation is False:
@@ -81,5 +84,6 @@ class AuthView(generics.GenericAPIView, mixins.CreateModelMixin):
         user_validation = auth_service.google_validate_client_id(data=auth_serialized_data)
         if user_validation is False:
             self.response['validation']['id_token'] = False
+            return Response(self.response, status=status.HTTP_401_UNAUTHORIZED)
 
-        return Response(self.response, status=status.HTTP_401_UNAUTHORIZED)
+        return Response(self.response, status=status.HTTP_200_OK)

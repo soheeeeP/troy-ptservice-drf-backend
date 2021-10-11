@@ -1,10 +1,9 @@
 import os, sys, json
 from datetime import timedelta
 
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-SECRETS_PATH = os.path.join(BASE_DIR)
-SECRET_BASE_FILE = os.path.join(SECRETS_PATH, 'secret_key.json')
+from Troy.settings import BASE_DIR
 
+SECRET_BASE_FILE = os.path.join(BASE_DIR, 'secret_key.json')
 mod = sys.modules[__name__]
 
 secret = json.loads(open(SECRET_BASE_FILE).read())
@@ -38,8 +37,10 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt',
     'dj_rest_auth',
     'dj_rest_auth.registration',
+    'imagekit',
 
     'drf_yasg',
+    'corsheaders',
 ]
 
 MIDDLEWARE = [
@@ -50,14 +51,24 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
+    'request_logging.middleware.LoggingMiddleware',
 ]
 
-# ROOT_URLCONF = 'Troy.urls.base'
+CORS_ORIGIN_WHITELIST = [
+    'http://127.0.0.1:3000',
+    'http://localhost:3000'
+]
+CORS_ALLOW_CREDENTIALS = True
+
+
+ROOT_URLCONF = 'Troy.urls'
+
 SET_MODE = os.environ.get('DJANGO_SETTINGS_MODULE')
-if SET_MODE == 'Troy.settings.production':
-    ROOT_URLCONF = 'Troy.urls.production'
-else:
-    ROOT_URLCONF = 'Troy.urls.development'
+
+IS_DEBUG_MODE = False
+if SET_MODE == 'Troy.settings.development':
+    IS_DEBUG_MODE = True
 
 TEMPLATES = [
     {
@@ -102,12 +113,17 @@ ACCOUNT_AUTHENTICATION_METHOD = 'email'
 REST_USE_JWT = True
 
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=10),
+    'ACCESS_TOKEN_LIFETIME': timedelta(days=1),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
     'ROTATE_REFRESH_TOKENS': False,
     'UPDATE_LAST_LOGIN': True,
+
     'ALGORITHM': 'HS256',
     'AUTH_HEADER_TYPES': 'Bearer',
+    'AUTH_HEADER_NAME': 'HTTP_AUTHORIZATION',
+    'USER_ID_FIELD': 'id',
+    'USER_ID_CLAIM': 'user_id',
+
     'SIGNING_KEY': SECRET_KEY,
 }
 
@@ -175,3 +191,58 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'static')
+
+LOG_DIR = os.path.join(BASE_DIR, 'logs/backend.log')
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'filters': {
+        'require_debug_false': {
+            '()': 'django.utils.log.RequireDebugFalse',
+        },
+        'require_debug_true': {
+            '()': 'django.utils.log.RequireDebugTrue',
+        },
+    },
+    # Formatter (text format 정의)
+    'formatters': {
+        'standard': {
+            'format': '%(asctime)s [%(levelname)s]: %(message)s',
+        },
+    },
+    # Handler (log record로 수행할 작업을 정의)
+    'handlers': {
+        # console에 출력
+        'console': {
+            'level': 'DEBUG',
+            'filters': ['require_debug_true'],
+            'class': 'logging.StreamHandler',
+            'formatter': 'standard',
+        },
+        # text로 log record를 저장하는 log file 생성
+        'file': {
+            'level': 'DEBUG',
+            'encoding': 'utf-8',
+            # debug=False일때만 수행!
+            'filters': ['require_debug_false'],
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': LOG_DIR,
+            'maxBytes': 1024*1024*5,  # 5 MB
+            'backupCount': 5,
+            'formatter': 'standard',
+        },
+    },
+    # Logger (log record 저장소)
+    'loggers': {
+        'django': {
+            'handlers': ['console', 'file'],
+            'level': 'INFO',
+            'propagate': True,
+        },
+        'django.request': {
+            'handlers': ['console', 'file'],
+            'level': 'DEBUG',
+            'propagate': False,
+        },
+    }
+}

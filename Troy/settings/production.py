@@ -13,7 +13,7 @@ aws_key = getattr(mod, 'aws')
 DATABASES = {
     'default': {
         # psql DB
-        'ENGINE': 'django.db.backends.postgresql_psycopg2',
+        'ENGINE': 'django.contrib.gis.db.backends.postgis',
         'NAME': aws_key['rds']['name'],
         'USER': aws_key['rds']['user'],
         'PASSWORD': aws_key['rds']['password'],

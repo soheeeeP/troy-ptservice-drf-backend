@@ -4,11 +4,18 @@ from api.users.views import *
 
 app_name = 'users'
 urlpatterns = [
+    # 사용자 회원가입/로그인 URL
     path('signup', SignUpView.as_view(), name='signup'),
     path('login', LoginView.as_view(), name='login'),
 
-    path('profile/<int:pk>', UserProfileView.as_view(), name='main_profile'),
-    path('profile/<int:pk>/edit', UserProfileView.as_view(), name='edit_main_profile'),
-    path('profile/trainee/<int:pk>/sub', TraineeSubProfileView.as_view(), name='trainee_sub_profile'),
-    path('profile/coach/<int:pk>/sub', CoachSubProfileView.as_view(), name='coach_sub_profile'),
+    # 사용자 회원가입/프로필 업데이트 시 수행하는 중복 데이터 확인 URL
+    path('duplicate', DuplicateCheckView.as_view(), name='duplicate'),
+
+    # 사용자 프로필 조회 URL
+    path('profile/main', UserProfileView.as_view(), name='mainprofile'),
+    path('profile/trainee/sub', TraineeSubProfileView.as_view(), name='trainee_subprofile'),
+    path('profile/coach/sub', CoachSubProfileView.as_view(), name='coach_subprofile'),
+
+    # 사용자 프로필 업데이트 URL
+    path('profile/edit', ProfileUpdateView.as_view(), name='edit_profile'),
 ]

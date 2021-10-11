@@ -10,7 +10,11 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.AlterField(
+        migrations.RemoveField(
+            model_name='coachprofile',
+            name='license',
+        ),
+        migrations.AddField(
             model_name='coachprofile',
             name='license',
             field=models.JSONField(blank=True, default=list, null=True, verbose_name='자격증'),

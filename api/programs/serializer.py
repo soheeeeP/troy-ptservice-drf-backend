@@ -2,34 +2,20 @@ import datetime
 import typing
 
 from django.db.models import Avg, When, Case, Sum, F, Count
-from django.db.models.functions import Round
-from django.db.models.query import QuerySet
+from django.db.models.functions import Round, ExtractYear, Coalesce
 
 from rest_framework import serializers
 
-from apps.programs.models import Goal, Program, Evaluation
+from apps.programs.models import Program, Evaluation
 from apps.users.models import UserProfile, TraineeProfile, CoachProfile
 from api.users import serializer as users
 from apps.quests.models import Quest
 from apps.tags.models import HashTag
 
 
-class GoalSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Goal
-        fields = '__all__'
-
-    def validate(self, attrs):
-        return dict(attrs)
-
-    def create(self, validated_data):
-        return super(GoalSerializer, self).create(validated_data)
-
-
 class ProgramDetailSerializer(serializers.Serializer):
     coach = serializers.SerializerMethodField()
     program = serializers.SerializerMethodField()
-    goal = serializers.SerializerMethodField()
     total_score = serializers.SerializerMethodField()
     feedback = serializers.SerializerMethodField()
 
@@ -46,13 +32,6 @@ class ProgramDetailSerializer(serializers.Serializer):
             coach_profile = users.CoachSubProfileSerializer(instance=obj.coach).data
             user_profile = users.UserProfileSerializer(instance=obj.coach.userprofile).data
             return coach_profile, user_profile
-        except AttributeError:
-            return None
-
-    @staticmethod
-    def get_goal(obj: Program) -> typing.Optional[GoalSerializer]:
-        try:
-            return GoalSerializer(instance=obj.goal).data
         except AttributeError:
             return None
 
@@ -80,9 +59,9 @@ class ProgramDetailSerializer(serializers.Serializer):
         except AttributeError:
             return None
 
-    @staticmethod
-    async def update_daily_quest_score(query: QuerySet[Quest]):
-        pass
+    # @staticmethod
+    # async def update_daily_quest_score(query: QuerySet[Quest]):
+    #     pass
 
 
 class EvaluationSerializer(serializers.Serializer):
@@ -96,19 +75,18 @@ class EvaluationSerializer(serializers.Serializer):
         evaluation = Evaluation.objects.values('communication', 'care', 'total_rate') \
             .filter(program__coach_id=obj.id).all()
         total_evaluation = evaluation.aggregate(
-            communication=Round(Avg('communication')),
-            care=Round(Avg('care')),
-            total_rate=Round(Avg('total_rate'))
+            communication=Coalesce(Round(Avg('communication')), 0.0),
+            care=Coalesce(Round(Avg('care')), 0.0),
+            total_rate=Coalesce(Round(Avg('total_rate')), 0.0)
         )
         return total_evaluation
 
     @staticmethod
     def get_trainee_aggregate(obj: CoachProfile):
         year = datetime.date.today().year
-        trainee = UserProfile.objects\
-            .annotate(age=year - F('birth_year'))\
+        trainee = UserProfile.objects \
+            .annotate(age=year-ExtractYear('birth')) \
             .values('age', 'gender').filter(trainee__program__coach_id=obj.id)
-
         total_rate = {
             'gender': trainee.aggregate(
                 male=Sum(Case(When(gender__exact=UserProfile.GENDER_CHOICES.male, then=1), default=0)),

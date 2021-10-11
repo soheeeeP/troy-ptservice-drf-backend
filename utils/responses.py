@@ -68,6 +68,23 @@ class UserErrorCollection(object):
         status_code=status.HTTP_404_NOT_FOUND,
         message='코치 프로필이 존재하지 않습니다.'
     )
+    USER_404_PROFILE_UPDATE_INVALID_DATA_ERROR = ErrorCollection(
+        response_code='USER_404_PROFILE_UPDATE_INVALID_DATA_ERROR',
+        status_code=status.HTTP_400_BAD_REQUEST,
+        message='입력받은 정보로 프로필을 업데이트 할 수 없습니다.'
+    )
+
+    USER_400_DUPLICATE_CHECK_VALIDATION_ERROR = ErrorCollection(
+        response_code='USER_400_DUPLICATE_CHECK_VALIDATION_ERROR',
+        status_code=status.HTTP_400_BAD_REQUEST,
+        message='중복된 데이터입니다.'
+    )
+
+    USER_400_DUPLICATE_CHECK_PARAMETER_ERROR = ErrorCollection(
+        response_code='USER_400_DUPLICATE_CHECK_PARAMETER_ERROR',
+        status_code=status.HTTP_400_BAD_REQUEST,
+        message='중복 확인을 수행할 data parameter가 전달되지 않았습니다.'
+    )
 
 
 class ProgramErrorCollection(object):
@@ -111,4 +128,16 @@ class ProgramErrorCollection(object):
         response_code='PROGRAM_404_QUEST_SET_ATTRIBUTE_ERROR',
         status_code=status.HTTP_404_NOT_FOUND,
         message='프로그램 객체에 퀘스트가 존재하지 않습니다.'
+    )
+
+    PROGRAM_204_COACH_LIST_DOES_NOT_EXISTS = ErrorCollection(
+        response_code='PROGRAM_204_COACH_LIST_DOES_NOT_EXISTS',
+        status_code=status.HTTP_204_NO_CONTENT,
+        message='서비스 내에 등록된 코치가 존재하지 않습니다.'
+    )
+
+    PROGRAM_404_COACH_LIST_SEARCH_VALUE_ERROR = ErrorCollection(
+        response_code='PROGRAM_404_COACH_LIST_SEARCH_VALUE_ERROR',
+        status_code=status.HTTP_404_NOT_FOUND,
+        message='잘못된 코치 검색 옵션입니다.'
     )

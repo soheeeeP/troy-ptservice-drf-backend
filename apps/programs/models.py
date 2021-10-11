@@ -25,12 +25,6 @@ class Program(models.Model):
         null=True,
         verbose_name='평가'
     )
-    goal = models.OneToOneField(
-        'Goal',
-        on_delete=models.CASCADE,
-        null=True,
-        verbose_name='목표'
-    )
 
     class Meta:
         db_table = 'program'
@@ -78,17 +72,4 @@ class Evaluation(models.Model):
     class Meta:
         db_table = 'evaluation'
         verbose_name = "평가"
-        verbose_name_plural = verbose_name
-
-
-class Goal(models.Model):
-    due_date = models.DateField()
-    tag = models.ManyToManyField(
-        'tags.HashTag',
-        through="tags.GoalTag",
-    )
-
-    class Meta:
-        db_table = 'goal'
-        verbose_name = "목표"
         verbose_name_plural = verbose_name

@@ -1,17 +1,19 @@
-import datetime, os
+import os
+from datetime import date, timedelta
 
 from django.db import models
 from django.contrib.auth.models import AbstractUser, UserManager
 from django.core.validators import MinValueValidator, MaxValueValidator
 
+from imagekit.models import ImageSpecField
+from imagekit.processors import ResizeToFit
+
 from model_utils import Choices
 
-from Troy.settings import base
 
-
-def set_img_path(instance):
-    filename = instance.oauth_token + '.png'
-    file_path = os.path.join(base.MEDIA_ROOT, 'profile', filename)
+def set_img_path(instance, filename):
+    ext = os.path.splitext(filename)[-1].lower()
+    file_path = f'profile/{instance.user_type}/{instance.nickname}{ext}'
     return file_path
 
 
@@ -41,7 +43,6 @@ class UserProfile(AbstractUser):
         ('Google', 'google'),
         ('default', 'default')
     )
-    YEAR_CHOICES = [(r, r) for r in range(1984, datetime.date.today().year+1)]
     GENDER_CHOICES = Choices(
         ('male', '남성'),
         ('female', '여성')
@@ -51,7 +52,7 @@ class UserProfile(AbstractUser):
         ('coach', '코치')
     )
     email = models.EmailField(
-        unique=True,
+        db_index=True,
         max_length=255,
         verbose_name='이메일'
     )
@@ -67,7 +68,6 @@ class UserProfile(AbstractUser):
         verbose_name='이름'
     )
     nickname = models.CharField(
-        unique=True,
         max_length=150,
         verbose_name='닉네임'
     )
@@ -77,16 +77,25 @@ class UserProfile(AbstractUser):
         max_length=10,
         verbose_name='성별'
     )
-    birth_year = models.IntegerField(
-        choices=YEAR_CHOICES,
-        default=datetime.datetime.now().year,
+    birth = models.DateField(
+        validators=[
+            MinValueValidator(limit_value=date(1984, 1, 1)),
+            MaxValueValidator(limit_value=date.today() - timedelta(days=1))
+        ],
+        default=date(date.today().year - 1, 1, 1),
         verbose_name='생년월일'
     )
-    profile_img = models.FileField(
+    profile_img = models.ImageField(
         upload_to=set_img_path,
         blank=True,
         null=True,
         verbose_name='프로필사진'
+    )
+    profile_thumbnail = ImageSpecField(
+        source='profile_img',
+        processors=[ResizeToFit(400, 400)],
+        format='PNG',
+        options={'quality': 80}
     )
     user_type = models.CharField(
         choices=USER_CHOICES,
@@ -126,51 +135,7 @@ class UserProfile(AbstractUser):
         return True
 
 
-class BodyInfo(models.Model):
-    BODY_TYPE_CHOICES = Choices(
-        ('inverted_triangle', '역삼각형'),
-        ('triangle', '삼각형'),
-        ('leanRectangle','빼빼로형'),
-        ('wideRectangle','통나무형'),
-        ('oval','복부비만'),
-        ('default', '없음')
-    )
-    body_type = models.CharField(       # choices로 구체화 필요
-        choices=BODY_TYPE_CHOICES,
-        default=BODY_TYPE_CHOICES.default,
-        max_length=20,
-        verbose_name='체형'
-    )
-    weight = models.DecimalField(
-        max_digits=5,
-        decimal_places=2,
-        verbose_name='키'
-    )
-    height = models.DecimalField(
-        max_digits=5,
-        decimal_places=2,
-        verbose_name='몸무게'
-    )
-    created_at = models.DateField(
-        auto_now_add=True,
-        blank=True,
-        null=True
-    )
-
-    class Meta:
-        db_table = 'bodyinfo'
-        verbose_name = '체형정보'
-        verbose_name_plural = verbose_name
-        get_latest_by = ['created_at']
-
-
 class TraineeProfile(models.Model):
-    body_info = models.ForeignKey(
-        'BodyInfo',
-        on_delete=models.CASCADE,
-        related_name='trainee_profile',
-        null=True
-    )
     purpose = models.ManyToManyField(
         'tags.HashTag',
         through="tags.PurposeTag",
@@ -209,3 +174,47 @@ class CoachProfile(models.Model):
         db_table = 'coach_profile'
         verbose_name = '코치'
         verbose_name_plural = verbose_name
+
+
+class BodyInfo(models.Model):
+    BODY_TYPE_CHOICES = Choices(
+        ('inverted_triangle', '역삼각형'),
+        ('triangle', '삼각형'),
+        ('leanRectangle', '빼빼로형'),
+        ('wideRectangle', '통나무형'),
+        ('oval', '복부비만'),
+        ('default', '없음')
+    )
+    trainee = models.ForeignKey(
+        'TraineeProfile',
+        on_delete=models.CASCADE,
+        related_name='body_info',
+        null=True
+    )
+    body_type = models.CharField(
+        choices=BODY_TYPE_CHOICES,
+        default=BODY_TYPE_CHOICES.default,
+        max_length=20,
+        verbose_name='체형'
+    )
+    weight = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        verbose_name='키'
+    )
+    height = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        verbose_name='몸무게'
+    )
+    created_at = models.DateField(
+        auto_now_add=True,
+        blank=True,
+        null=True
+    )
+
+    class Meta:
+        db_table = 'body_info'
+        verbose_name = '체형정보'
+        verbose_name_plural = verbose_name
+        get_latest_by = ['created_at']

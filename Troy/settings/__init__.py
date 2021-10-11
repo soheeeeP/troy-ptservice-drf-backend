@@ -3,7 +3,7 @@ from pathlib import Path
 from environs import Env
 
 
-BASE_DIR = Path(__file__).parent.parent.absolute()
+BASE_DIR = Path(__file__).parent.parent.parent.absolute()
 env = Env()
 if BASE_DIR.joinpath(".env").is_file():
     Env.read_env(str(BASE_DIR.joinpath(".env")))

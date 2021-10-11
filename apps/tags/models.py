@@ -4,13 +4,13 @@ from model_utils import Choices
 
 class HashTag(models.Model):
     TAG_CHOICES = Choices(
-        ('goal', '목표'),
+        ('default', 'default'),
         ('specialty', '전문성'),
         ('purpose', '목적')
     )
     tag_type = models.CharField(
         choices=TAG_CHOICES,
-        default=TAG_CHOICES.goal,
+        default=TAG_CHOICES.default,
         max_length=20,
         verbose_name='태그 종류'
     )
@@ -54,20 +54,4 @@ class PurposeTag(models.Model):
     class Meta:
         db_table = 'purpose_tag'
         verbose_name = '목적 태그'
-        verbose_name_plural = verbose_name
-
-
-class GoalTag(models.Model):
-    goal = models.ForeignKey(
-        "programs.Goal",
-        on_delete=models.CASCADE
-    )
-    tag = models.ForeignKey(
-        'HashTag',
-        on_delete=models.CASCADE
-    )
-
-    class Meta:
-        db_table = 'goal_tag'
-        verbose_name = '목표 태그'
         verbose_name_plural = verbose_name

@@ -14,6 +14,7 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.conf import settings
+from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import path, include
 
@@ -22,6 +23,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt import authentication
 
+import debug_toolbar
 from drf_yasg.views import get_schema_view
 from drf_yasg import openapi
 
@@ -52,3 +54,11 @@ urlpatterns = [
     path('troy/swagger/', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
     path('troy/docs/', schema_view.with_ui('redoc', cache_timeout=0), name='schema-redoc'),
 ]
+
+urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
+urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+
+if settings.IS_DEBUG_MODE is True:
+    urlpatterns += [
+        path('debug/', include(debug_toolbar.urls)),
+    ]

@@ -12,3 +12,4 @@ venv/
 .env
 secret_key.json
 static/*
+media/*

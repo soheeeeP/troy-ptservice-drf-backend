@@ -6,7 +6,7 @@ from django.db import migrations
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('users', '0002_alter_coachprofile_license'),
+        ('users', '0002_auto_20210919_1317'),
     ]
 
     operations = [

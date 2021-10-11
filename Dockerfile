@@ -1,26 +1,44 @@
-FROM python:3.9
+FROM ubuntu:18.04
 MAINTAINER Team. M-to-M
 
-RUN apt-get update
-RUN apt-get install -y gdal-bin python3-gdal
+RUN apt-get update && \
+    apt-get upgrade -y && \
+    apt-get install -y \
+    gdal-bin python3-gdal \
+    curl apt-utils apt-transport-https \
+    git \
+    vim \
+    python3.7 \
+    python3-dev \
+    python3-setuptools \
+    python3-pip \
+    nginx \
+    supervisor \
+    mysql-client \
+    libmysqlclient-dev \
+    unixodbc-dev \
+    sqlite3 \
+    locales && \
+    rm -rf /var/lib/apt/lists/*
+
+RUN pip3 install -U pip setuptools
+RUN apt-get install python3-setuptools
+RUN pip3 install gunicorn[gevent]
+
 WORKDIR /app
 
-ENV PATH="${PATH}:/root/.poetry/bin"
-ENV POETRY_VIRTUALENVS_CREATE=false
-COPY poetry.lock pyproject.toml /app/
-RUN curl -sSL https://raw.githubusercontent.com/sdispater/poetry/master/get-poetry.py | python
-RUN poetry config virtualenvs.create false \
-    && poetry update \
-    && poetry install --no-interaction --no-dev
-
 COPY . .
+RUN pip3 install -r requirements.txt
+ARG SETTINGS_ARG=production
+ENV DJANGO_SETTINGS_MODULE Troy.settings.$SETTINGS_ARG
+ENV SERVICE_ENV=$SERVICE_ARG
+#RUN python3 ./manage.py migrate
 
-# migration 파일은 로컬에서 생성 및 테스트 후 업로드한다.
-# RUN python3 ./manage.py makemigrations
-# RUN python3 ./manage.py migrate
+RUN echo "daemon off;" >> /etc/nginx/nginx.conf
 
-ENV DJANGO_SETTINGS_MODULE Troy.settings.development
+COPY .ci-cd/config/nginx/nginx.conf /etc/nginx/sites-available/default
+COPY .ci-cd/config/nginx/supervisord.conf /etc/supervisor/conf.d/
+EXPOSE 80
+EXPOSE 443
 
-ENV DJANGO_SETTINGS_MODULE Troy.settings.development
-CMD ["python", "./manage.py", "runserver","0.0.0.0:8000"]
-EXPOSE 8000
+CMD ["supervisord", "-n"]
