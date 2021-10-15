@@ -39,6 +39,10 @@ class AuthSMS(TimeStampedModel):
         verbose_name='인증번호',
         max_length=4
     )
+    validation = models.BooleanField(
+        verbose_name='인증여부',
+        default=False
+    )
 
     class Meta:
         db_table = 'auth_sms'

@@ -62,6 +62,7 @@ class AuthSMSCreateUpdateSerializer(serializers.ModelSerializer):
         time_diff = timezone.now() - instance.created_at
         if time_diff < datetime.timedelta(minutes=3):
             instance.updated_at = timezone.now()
+            instance.validation = True
             instance.save()
             return instance
         else:
