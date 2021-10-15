@@ -1,19 +1,15 @@
-import datetime
-
 from django.db import models
 from django.core.validators import MinValueValidator, MaxValueValidator
 
+from utils.models import TimeStampedModel
 
-class Quest(models.Model):
+
+class Quest(TimeStampedModel):
     program = models.ForeignKey(
         "programs.Program",
         on_delete=models.CASCADE,
         default=True,
         verbose_name='프로그램'
-    )
-    created_at = models.DateTimeField(
-        auto_now=True,
-        verbose_name='퀘스트 생성일자'
     )
     meal_planner = models.OneToOneField(
         'MealPlanner',
@@ -57,7 +53,7 @@ class Quest(models.Model):
         verbose_name_plural = verbose_name
 
 
-class MealPlanner(models.Model):
+class MealPlanner(TimeStampedModel):
     breakfast = models.JSONField(
         default=list,
         verbose_name='아침'
@@ -77,7 +73,7 @@ class MealPlanner(models.Model):
         verbose_name_plural = verbose_name
 
 
-class Workout(models.Model):
+class Workout(TimeStampedModel):
     workout_content = models.JSONField(
         default=list,
         verbose_name='운동퀘스트'

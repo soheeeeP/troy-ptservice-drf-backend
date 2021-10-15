@@ -4,9 +4,10 @@ from django.db import models
 from django.core.validators import MaxValueValidator, MinValueValidator
 
 from model_utils import Choices
+from utils.models import TimeStampedModel
 
 
-class Schedule(models.Model):
+class Schedule(TimeStampedModel):
     SCHEDULE_CHOICES = Choices(
         ('opened', '수업개설'),
         ('scheduled', '예약완료'),
@@ -86,13 +87,5 @@ class RescheduleRequest(models.Model):
     update_end_time = models.PositiveSmallIntegerField(
         validators=[MinValueValidator(0), MaxValueValidator(24)],
         default=0
-    )
-    created_at = models.DateTimeField(
-        auto_now_add=True,
-        verbose_name='변경요청 시간'
-    )
-    fixed_at = models.DateTimeField(
-        auto_now=True,
-        verbose_name='요청응답 시간'
     )
 

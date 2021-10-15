@@ -1,10 +1,14 @@
+import base64
+import hashlib
+import hmac
 import requests
+import time
+import json
 
 from rest_framework.exceptions import ValidationError
 
-from apps.oauth.models import Auth
-
 from Troy.settings import base
+from apps.oauth.models import Auth
 
 
 class GoogleService(object):
@@ -64,3 +68,45 @@ class AuthService(object):
             oauth_token=self.oauth['oauth_token']
         )
         return auth
+
+
+class AuthSMSService(object):
+    def __init__(self):
+        self.sender = '01089099796'
+        self.naver = getattr(base, 'auth')['naver']
+        self.url = 'https://sens.apigw.ntruss.com'
+        self.uri = f'/sms/v2/services/{self.naver["service_id"]}/messages'
+
+    def make_signature(self, timestamp):
+        secret_key = bytes(self.naver['secret_key'], 'UTF-8')
+
+        message = "POST "+self.uri+"\n"+timestamp+"\n"+self.naver['access_key']
+        message = bytes(message, 'UTF-8')
+        signingKey = base64.b64encode(hmac.new(secret_key, message, digestmod=hashlib.sha256).digest())
+
+        return signingKey
+
+    def send_sms(self, phone_number, auth_number):
+        timestamp = str(int(time.time()*1000))
+        context = {
+            'type': 'SMS',
+            'contentType': 'COMM',
+            'countryCode': '82',
+            'from': self.sender,
+            'content': f'Troy 인증번호 [{auth_number}]를 입력해주세요.',
+            'messages': [{
+                'to': phone_number
+            }]
+        }
+        headers = {
+            'Content-Type': 'application/json; charset=utf-8',
+            'x-ncp-apigw-timestamp': timestamp,
+            'x-ncp-iam-access-key': self.naver['access_key'],
+            'x-ncp-apigw-signature-v2': self.make_signature(timestamp=timestamp)
+        }
+        response = requests.post(self.url+self.uri, headers=headers, json=context)
+
+        if not response.ok:
+            raise ValidationError(response.reason)
+
+        return True

@@ -42,3 +42,24 @@ STATICFILES_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
 
 MEDIAFILES_LOCATION = 'media'
 STATICFILES_LOCATION = 'static'
+
+CACHES = {
+    "default": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        # TODO: prod mode의 redis host 변경하기
+        "LOCATION": f"redis://{ALLOWED_HOSTS[0]}:6379/0",
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+        },
+    },
+    # app이름으로 cache명 지정
+    "apps": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        # cache의 db_index 지정
+        "LOCATION": f"redis://{ALLOWED_HOSTS[0]}:6379/0",
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+        },
+        "KEY_PREFIX": "apps",
+    },
+}

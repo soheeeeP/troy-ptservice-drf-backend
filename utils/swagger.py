@@ -2,11 +2,17 @@
 from drf_yasg import openapi
 
 
-class DuplicateCheckParamCollection(object):
+class VerifyParamCollection(object):
     nickname = openapi.Parameter(
-        'nickname',
+        'q',
         openapi.IN_QUERY,
         description='중복 검사를 수행할 \'nickname\'값을 parameter로 전달해주세요.',
+        type=openapi.TYPE_STRING
+    )
+    coach_code = openapi.Parameter(
+        'q',
+        openapi.IN_QUERY,
+        description='검증할 코치 코드(\'oauth_token\'값)을 parameter로 전달해주세요.',
         type=openapi.TYPE_STRING
     )
 

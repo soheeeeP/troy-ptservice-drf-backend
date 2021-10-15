@@ -1,5 +1,6 @@
 import json
 
+from django.db.models import Q
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
 
@@ -11,53 +12,15 @@ from rest_framework.permissions import IsAuthenticated, AllowAny
 from apps.users.models import *
 from api.users.services import UserService
 from api.users.serializer import (
-    UserProfileSerializer, TraineeSubProfileSerializer, CoachSubProfileSerializer,
+    UserProfileSerializer, TraineeSubProfileSerializer, CoachSubProfileSerializer, CoachListSerializer,
     JWTSerializer, UserProfileCreateUpdateSerializer, LoginSignUpResponseSerializer
 )
 from apps.programs.models import Program
 from api.programs.serializer import ProgramDetailSerializer
 
 from utils.responses import UserErrorCollection as error_collection
-from utils.swagger import DuplicateCheckParamCollection as duplicate_check_param_collection
+from utils.swagger import CoachListQueryParamCollection as coach_list_param_collection
 from utils.authentication import TroyJWTAUthentication
-
-
-class DuplicateCheckView(generics.RetrieveAPIView):
-    permission_classes = (AllowAny,)
-    queryset = UserProfile.objects.all()
-
-    success_response = openapi.Response(
-        'USER_200_DUPLICATE_CHECK_RESPONSE',
-        examples={
-            'application/json': {
-                'nickname': 'bool'
-            }
-        }
-    )
-
-    @swagger_auto_schema(
-        manual_parameters=[
-            duplicate_check_param_collection.nickname,
-        ],
-        operation_description='사용자 닉네임 중복여부를 확인합니다.',
-        responses={
-            200: success_response,
-            400:
-                error_collection.USER_400_DUPLICATE_CHECK_PARAMETER_ERROR.as_md() +
-                error_collection.USER_400_DUPLICATE_CHECK_VALIDATION_ERROR.as_md()
-        }
-    )
-    def get(self, request, *args, **kwargs):
-        nickname = request.GET.get('nickname', None)
-        if nickname:
-            try:
-                self.queryset.get(nickname__iexact=nickname)
-                raise ValidationError('이미 사용중인 닉네임입니다.')
-            except UserProfile.DoesNotExist:
-                response = {'nickname': True}
-                return Response(response, status=status.HTTP_200_OK)
-
-        raise ValidationError('중복 확인을 수행할 data 종류를 parameter로 전달해주세요')
 
 
 class LoginView(generics.CreateAPIView):
@@ -166,7 +129,7 @@ class UserProfileView(generics.RetrieveAPIView, mixins.UpdateModelMixin):
         tags = trainee.purpose.values_list('tag_content', flat=True)
         response['tag'] = list(tags)
         try:
-            program = trainee.program_set.latest('started_date')
+            program = trainee.program_set.latest('created_at')
         except Program.DoesNotExist:
             return Response(response, status=status.HTTP_200_OK)
 
@@ -271,3 +234,100 @@ class ProfileUpdateView(generics.UpdateAPIView):
         )
         return Response(response, status=status.HTTP_201_CREATED)
 
+
+class CoachListView(generics.ListAPIView):
+    permission_classes = (IsAuthenticated,)
+    queryset = CoachProfile.objects.select_related('userprofile','center').all()
+    serializer_class = CoachListSerializer
+
+    def get_queryset(self):
+        q = self.request.query_params.get('q', None)
+        nickname_set = self.queryset.filter(userprofile__nickname__contains=q)
+        center_set = self.queryset.filter(
+            Q(center__name__icontains=q) |
+            Q(center__full_address__icontains=q)
+        )
+        tag_set = self.queryset.filter(specialtytag__tag__tag_content__icontains=q)
+        return nickname_set or center_set or tag_set
+
+    success_response = openapi.Response(
+        'PROGRAM_200_COACH_LIST_SUCCESS_RESPONSE',
+        examples={
+            'application/json': {
+                'user': UserProfileSerializer().data,
+                'coach': {
+                    'id': 0,
+                    'nickname': 'string',
+                    'profile_img': 'http://example.com',
+                    "specialty": [],
+                    "center": {
+                        'id': 0,
+                        'name': 'string',
+                        'full_address': 'string',
+                        'city': 'string',
+                        'district': 'string',
+                        'town': 'string',
+                    },
+                    'evaluation': {
+                        'communication': 'float',
+                        'care': 'float',
+                        'total_rate': 'float'
+                    }
+                }
+            }
+        }
+    )
+
+    @swagger_auto_schema(
+        manual_parameters=[
+            coach_list_param_collection.option,
+            coach_list_param_collection.q,
+            coach_list_param_collection.sorting,
+            coach_list_param_collection.order_by
+        ],
+        operation_description='서비스 내의 코치의 리스트를 반환합니다.',
+        responses={
+            200: success_response,
+            404:
+                error_collection.USER_204_COACH_LIST_DOES_NOT_EXISTS.as_md() +
+                error_collection.USER_404_COACH_LIST_SEARCH_VALUE_ERROR.as_md()
+        }
+    )
+    def get(self, request, *args, **kwargs):
+        user = JWTSerializer().get_user_by_token(
+            header=TroyJWTAUthentication().get_header(request=request)
+        )
+
+        # 검색 옵션이 지정되어 있는 경우 filter된 queryset을 사용
+        option = self.request.query_params.get('option', None)
+        if option == 'search':
+            queryset = self.filter_queryset(self.get_queryset())
+        else:
+            queryset = self.queryset
+
+        # queryset이 존재하지 않는 경우 (서비스 내에 등록된 코치가 없는 경우), 204_NO_CONTENT error 반환
+        if queryset is None:
+            return Response(None, status=status.HTTP_204_NO_CONTENT)
+
+        # 코치 프로필 정보를 담은 list를 생성
+        coach = self.serializer_class.get_coach_list(queryset=queryset)
+
+        # 응답 data 구성
+        response = dict()
+        response['user'] = UserProfileSerializer(instance=user).data
+
+        # 정렬 옵션이 지정되어 있는 경우, sort()함수를 호출하여 정렬을 내림차순/오름차순 정렬 수행
+        sorting = self.request.query_params.get('sorting', None)
+        if not sorting:
+            response['coach'] = coach
+            return Response(response, status=status.HTTP_200_OK)
+
+        order_by = self.request.query_params.get('order_by', None)
+        if order_by == 'ascending':
+            response['coach'] = sorted(coach, key=lambda score: score['evaluation']['total_rate'])
+        elif order_by == 'descending':
+            response['coach'] = sorted(coach, key=lambda score: score['evaluation']['total_rate'], reverse=True)
+        else:
+            message = '\'order_by\' parameter는 \'ascending\'또는 \'descending\'값만을 가질 수 있습니다.'
+            raise ValidationError(message)
+        return Response(response, status=status.HTTP_200_OK)

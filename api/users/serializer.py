@@ -5,6 +5,7 @@ from django.core.validators import MinValueValidator, MaxValueValidator
 from django.db import transaction
 from django.contrib.auth.models import update_last_login
 from django.db.models.query import QuerySet
+from django.utils import timezone
 
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
@@ -13,10 +14,10 @@ from rest_framework_simplejwt.tokens import RefreshToken
 
 from apps.users.models import UserProfile, TraineeProfile, CoachProfile, BodyInfo
 
-from apps.oauth.models import Auth
+from apps.oauth.models import Auth, AuthSMS
 from apps.centers.models import Center
 from api.centers.serializer import CenterSerializer
-from api.oauth.serializer import AuthCreateSerializer
+from api.oauth.serializer import AuthCreateSerializer, AuthSMSSerializer, AuthSMSCreateUpdateSerializer
 from api.tags.serializer import HashTagSerializer, HashTagCreateSerializer
 from api.programs.serializer import EvaluationSerializer
 
@@ -79,7 +80,7 @@ class TraineeSubProfileSerializer(serializers.Serializer):
 
     @staticmethod
     def get_body_info(obj: TraineeProfile) -> typing.Optional[BodyInfoSerializer]:
-        body_info = BodyInfo.objects.filter(trainee_profile=obj).latest('created_at')
+        body_info = BodyInfo.objects.filter(trainee=obj).latest('created_at')
         return BodyInfoSerializer(instance=body_info).data
 
 
@@ -184,9 +185,11 @@ class CoachProfileCreateUpdateSerializer(serializers.ModelSerializer):
 
 
 class UserProfileSerializer(serializers.ModelSerializer):
+    auth_sms = AuthSMSSerializer()
+
     class Meta:
         model = UserProfile
-        fields = ['id', 'username', 'nickname', 'gender', 'birth', 'profile_img', 'user_type']
+        fields = ['id', 'email', 'username', 'nickname', 'gender', 'birth', 'profile_img', 'auth_sms', 'user_type']
 
     def validate(self, attrs):
         super(UserProfileSerializer, self).validate(attrs)
@@ -195,6 +198,9 @@ class UserProfileSerializer(serializers.ModelSerializer):
 class UserProfileCreateUpdateSerializer(serializers.Serializer):
     oauth = AuthCreateSerializer(
         help_text='회원가입 시 필수로 입력해야 하는 oauth 정보로 프로필 업데이트 시에는 요구되지 않습니다.'
+    )
+    auth_sms = AuthSMSCreateUpdateSerializer(
+        help_text='회원가입 시 필수로 입력해야 하는 회원 휴대폰 번호/인증번호로 프로필 업데이트 시에는 요구되지 않습니다.'
     )
     email = serializers.EmailField(
         max_length=255,
@@ -259,8 +265,12 @@ class UserProfileCreateUpdateSerializer(serializers.Serializer):
 
         with transaction.atomic():
             auth_obj = auth_serializer.save()
+
+            sms = validated_data.pop('auth_sms')
+            print(sms)
             user = UserProfile.objects.create(
                 oauth=auth_obj,
+                auth_sms=AuthSMS.objects.get(**sms),
                 email=validated_data.pop('email'),
                 username=validated_data.pop('username'),
                 nickname=validated_data.pop('nickname'),
@@ -283,7 +293,6 @@ class UserProfileCreateUpdateSerializer(serializers.Serializer):
             return user, user.pk
 
     def update(self, instance, validated_data):
-
         sid = transaction.savepoint()
         try:
             UserProfile.objects.update(
@@ -292,11 +301,12 @@ class UserProfileCreateUpdateSerializer(serializers.Serializer):
                 nickname=validated_data.pop('nickname', instance.nickname),
                 gender=validated_data.pop('gender', instance.gender),
                 birth=validated_data.pop('birth', instance.birth),
-                profile_img=validated_data.pop('profile_img', instance.profile_img)
+                profile_img=validated_data.pop('profile_img', instance.profile_img),
+                updated_at=timezone.now()
             )
         except ValidationError:
             transaction.savepoint_rollback(sid)
-            raise ValidationError('validation err while updating UserProfile')
+            raise ValidationError('UserProfile를 업데이트 하는 도중에 validation 오류가 발생했습니다.')
 
         user_type = instance.user_type
         if user_type == UserProfile.USER_CHOICES.trainee:

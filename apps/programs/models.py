@@ -1,8 +1,10 @@
 from django.db import models
 from django.core.validators import MinValueValidator, MaxValueValidator
 
+from utils.models import TimeStampedModel
 
-class Program(models.Model):
+
+class Program(TimeStampedModel):
     coach = models.ForeignKey(
         'users.CoachProfile',
         on_delete=models.CASCADE,
@@ -12,12 +14,6 @@ class Program(models.Model):
         'users.TraineeProfile',
         on_delete=models.CASCADE,
         verbose_name='트레이니'
-    )
-    started_date = models.DateField(
-        auto_now_add=True
-    )
-    finished_date = models.DateField(
-        null=True
     )
     evaluation = models.OneToOneField(
         'Evaluation',
@@ -30,17 +26,14 @@ class Program(models.Model):
         db_table = 'program'
         verbose_name = "프로그램"
         verbose_name_plural = verbose_name
-        get_latest_by = ['started_date']
+        get_latest_by = ['created_at']
 
 
-class OfflineClass(models.Model):
+class OfflineClass(TimeStampedModel):
     program = models.ForeignKey(
         'Program',
         on_delete=models.CASCADE,
         verbose_name='서비스'
-    )
-    created_at = models.DateTimeField(
-        verbose_name='오프라인 수업일자'
     )
     class_contents = models.TextField()
 
@@ -51,7 +44,7 @@ class OfflineClass(models.Model):
         get_latest_by = ['created_at']
 
 
-class Evaluation(models.Model):
+class Evaluation(TimeStampedModel):
     communication = models.IntegerField(
         validators=[MinValueValidator(0), MaxValueValidator(5)],
         verbose_name='커뮤니케이션 만족도'

@@ -1,6 +1,7 @@
 from django.db import models
 
 from model_utils import Choices
+from utils.models import TimeStampedModel
 
 
 class Auth(models.Model):
@@ -20,3 +21,26 @@ class Auth(models.Model):
         default='',
         verbose_name='OAuth_ID'
     )
+
+    class Meta:
+        db_table = 'auth'
+        verbose_name = 'OAuth 인증'
+        verbose_name_plural = verbose_name
+
+
+class AuthSMS(TimeStampedModel):
+    phone_number = models.CharField(
+        verbose_name='휴대폰 번호',
+        db_index=True,
+        null=True,
+        max_length=11
+    )
+    auth_number = models.IntegerField(
+        verbose_name='인증번호',
+        max_length=4
+    )
+
+    class Meta:
+        db_table = 'auth_sms'
+        verbose_name = '휴대폰 인증'
+        verbose_name_plural = verbose_name

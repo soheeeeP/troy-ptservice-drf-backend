@@ -1,19 +1,21 @@
-from django.db.models import F, Prefetch, Q
+import json
+
+from django.core.cache import caches
+from django.db.models import F, Prefetch
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
 
 from rest_framework import generics, status
-from rest_framework.response import Response
 from rest_framework.exceptions import ValidationError
+from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 
 from api.programs.serializer import ProgramDetailSerializer, EvaluationSerializer
-from api.users.serializer import JWTSerializer, UserProfileSerializer, CoachListSerializer
-from apps.users.models import TraineeProfile, CoachProfile
+from api.users.serializer import JWTSerializer
+from apps.users.models import UserProfile, TraineeProfile, CoachProfile
 from apps.programs.models import Program
 
 from utils.responses import ProgramErrorCollection as error_collection
-from utils.swagger import CoachListQueryParamCollection as coach_list_param_collection
 from utils.authentication import TroyJWTAUthentication
 
 
@@ -56,11 +58,6 @@ class ProgramCoachView(generics.RetrieveAPIView):
             return Response(response, status=status.HTTP_200_OK)
 
         return Response(None, status=status.HTTP_200_OK)
-
-
-# 트레이너의 dashboard에서 활용할 view
-class ProgramTraineeView(generics.GenericAPIView):
-    pass
 
 
 class ProgramView(generics.RetrieveAPIView):
@@ -134,100 +131,158 @@ class CoachEvaluationView(generics.RetrieveAPIView):
         return Response(response, status=status.HTTP_200_OK)
 
 
-class CoachListView(generics.ListAPIView):
+class ProgramRequestView(generics.CreateAPIView):
     permission_classes = (IsAuthenticated,)
-    queryset = CoachProfile.objects.select_related('userprofile','center').all()
-    serializer_class = CoachListSerializer
+    queryset = TraineeProfile.objects.all()
 
-    def get_queryset(self):
-        q = self.request.query_params.get('q', None)
-        nickname_set = self.queryset.filter(userprofile__nickname__contains=q)
-        center_set = self.queryset.filter(
-            Q(center__name__icontains=q) |
-            Q(center__full_address__icontains=q)
-        )
-        tag_set = self.queryset.filter(specialtytag__tag__tag_content__icontains=q)
-        return nickname_set or center_set or tag_set
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.response = {
+            'request': {
+                'status': True,
+                'key': ''
+            },
+            'message': ''
+        }
 
     success_response = openapi.Response(
-        'PROGRAM_200_COACH_LIST_SUCCESS_RESPONSE',
+        'PROGRAM_200_NEW_COACH_REQUEST_SUCCESS_RESPONSE',
         examples={
             'application/json': {
-                'user': UserProfileSerializer().data,
-                'coach': {
-                    'id': 0,
-                    'nickname': 'string',
-                    'profile_img': 'http://example.com',
-                    "specialty": [],
-                    "center": {
-                        'id': 0,
-                        'name': 'string',
-                        'full_address': 'string',
-                        'city': 'string',
-                        'district': 'string',
-                        'town': 'string',
-                    },
-                    'evaluation': {
-                        'communication': 'float',
-                        'care': 'float',
-                        'total_rate': 'float'
-                    }
-                }
+                'request': {
+                    'status': 'bool',
+                    'key': 'int'
+                },
+                'message': ''
             }
         }
     )
 
     @swagger_auto_schema(
-        manual_parameters=[
-            coach_list_param_collection.option,
-            coach_list_param_collection.q,
-            coach_list_param_collection.sorting,
-            coach_list_param_collection.order_by
-        ],
-        operation_description='서비스 내의 코치의 리스트를 반환합니다.',
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'request': openapi.Schema(type=openapi.TYPE_STRING, description='요청 종류'),
+                'code': openapi.Schema(type=openapi.TYPE_STRING, description='코치 코드(oauth token)'),
+            }
+        ),
+        operation_description='트레이니의 새로운 코치 등록 요청을 처리합니다.',
         responses={
             200: success_response,
             404:
-                error_collection.PROGRAM_204_COACH_LIST_DOES_NOT_EXISTS.as_md() +
-                error_collection.PROGRAM_404_COACH_LIST_SEARCH_VALUE_ERROR.as_md()
+                error_collection.PROGRAM_400_CACHE_DOES_NOT_EXISTS.as_md() +
+                error_collection.PROGRAM_400_NEW_COACH_REQUEST_DUPLICATE_ERROR.as_md() +
+                error_collection.PROGRAM_404_COACH_PROFILE_DOES_NOT_EXISTS.as_md() +
+                error_collection.PROGRAM_404_TRAINEE_PROFILE_DOES_NOT_EXISTS.as_md()
         }
     )
-    def get(self, request, *args, **kwargs):
+    def post(self, request, *args, **kwargs):
+        data = json.loads(request.body)
         user = JWTSerializer().get_user_by_token(
             header=TroyJWTAUthentication().get_header(request=request)
         )
 
-        # 검색 옵션이 지정되어 있는 경우 filter된 queryset을 사용
-        option = self.request.query_params.get('option', None)
-        if option == 'search':
-            queryset = self.filter_queryset(self.get_queryset())
+        trainee_id = user.id
+        trainee_nickname = user.nickname
+
+        coach = UserProfile.objects.values('id', 'nickname').get(oauth__oauth_token=data['code'])
+        coach_id = coach['id']
+        coach_nickname = coach['nickname']
+
+        troy_cache = caches['apps']
+
+        # cache_row = "apps:program:request:{coach_id}_{trainee_id}"
+        # cache_value = "[트레이니_이름]님이 [코치_이름]님께 수업 개설 요청을 보냈어요"
+        key = f'program:request:coach{coach_id}_trainee{trainee_id}'
+        stored = troy_cache.get(key)
+        if stored:
+            self.response['request']['status'] = False
+            self.response['message'] = '이미 전송된 요청입니다.'
+            return Response(self.response, status=status.HTTP_400_BAD_REQUEST)
+
+        value = f'{trainee_nickname}님이 {coach_nickname}님께 수업 개설 요청을 보냈어요.'
+        troy_cache.set(key, value)
+        self.response['request']['key'] = key
+        self.response['message'] = f'{coach_nickname}님께 수업 개설 요청이 전송되었어요.'
+        return Response(self.response, status=status.HTTP_201_CREATED)
+
+
+class ProgramResponseView(generics.CreateAPIView):
+    permission_classes = (IsAuthenticated,)
+    queryset = CoachProfile.objects.all()
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.response = {
+            'response': {
+                'status': True,
+                'key': ''
+            },
+            'message': ''
+        }
+
+    success_response = openapi.Response(
+        'PROGRAM_200_COACH_RESPONSE_SUCCESS_RESPONSE',
+        examples={
+            'application/json': {
+                'request': {
+                    'status': 'bool',
+                    'key': 'int'
+                },
+                'message': ''
+            }
+        }
+    )
+
+    @swagger_auto_schema(
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'response': openapi.Schema(type=openapi.TYPE_STRING, description='응답 종류'),
+                'approval': openapi.Schema(type=openapi.TYPE_BOOLEAN, description='요청 승인 여부'),
+                'pk': openapi.Schema(type=openapi.TYPE_INTEGER, description='트레이니 프로필 pk'),
+            }
+        ),
+        operation_description='트레이니의 새로운 코치 등록 응답을 처리합니다.',
+        responses={
+            200: success_response,
+            404:
+                error_collection.PROGRAM_400_CACHE_DOES_NOT_EXISTS.as_md() +
+                error_collection.PROGRAM_400_COACH_REQUEST_DOES_NOT_EXISTS.as_md() +
+                error_collection.PROGRAM_404_COACH_PROFILE_DOES_NOT_EXISTS.as_md() +
+                error_collection.PROGRAM_404_TRAINEE_PROFILE_DOES_NOT_EXISTS.as_md()
+        }
+    )
+    def post(self, request, *args, **kwargs):
+        data = json.loads(request.body)
+        user = JWTSerializer().get_user_by_token(
+            header=TroyJWTAUthentication().get_header(request=request)
+        )
+        coach_id = user.id
+        coach_nickname = user.nickname
+
+        trainee = UserProfile.objects.values('id', 'nickname').get(pk=data['pk'])
+        trainee_id = trainee['id']
+        trainee_nickname = trainee['nickname']
+
+        troy_cache = caches['apps']
+        request_key = f'program:request:coach{coach_id}_trainee{trainee_id}'
+        stored = troy_cache.get(request_key)
+        if not stored:
+            self.response['response']['status'] = False
+            self.response['message'] = '요청을 찾을 수 없습니다.'
+            return Response(self.response, status=status.HTTP_400_BAD_REQUEST)
+
+        if data['approval']:
+            response_key = f'program:response:approval:coach{coach_id}_trainee{trainee_id}'
+            response_value = f'{coach_nickname}님이 {trainee_nickname}님의 수업 개설 요청을 승인했어요.'
         else:
-            queryset = self.queryset
+            response_key = f'program:response:refusal:coach{coach_id}_trainee{trainee_id}'
+            response_value = f'{coach_nickname}님이 {trainee_nickname}님의 수업 개설 요청을 거절하셨어요.'
 
-        # queryset이 존재하지 않는 경우 (서비스 내에 등록된 코치가 없는 경우), 204_NO_CONTENT error 반환
-        if queryset is None:
-            return Response(None, status=status.HTTP_204_NO_CONTENT)
+        troy_cache.delete(request_key)
+        troy_cache.set(response_key, response_value)
 
-        # 코치 프로필 정보를 담은 list를 생성
-        coach = self.serializer_class.get_coach_list(queryset=queryset)
-
-        # 응답 data 구성
-        response = dict()
-        response['user'] = UserProfileSerializer(instance=user).data
-
-        # 정렬 옵션이 지정되어 있는 경우, sort()함수를 호출하여 정렬을 내림차순/오름차순 정렬 수행
-        sorting = self.request.query_params.get('sorting', None)
-        if not sorting:
-            response['coach'] = coach
-            return Response(response, status=status.HTTP_200_OK)
-
-        order_by = self.request.query_params.get('order_by', None)
-        if order_by == 'ascending':
-            response['coach'] = sorted(coach, key=lambda score: score['evaluation']['total_rate'])
-        elif order_by == 'descending':
-            response['coach'] = sorted(coach, key=lambda score: score['evaluation']['total_rate'], reverse=True)
-        else:
-            message = '\'order_by\' parameter는 \'ascending\'또는 \'descending\'값만을 가질 수 있습니다.'
-            raise ValidationError(message)
-        return Response(response, status=status.HTTP_200_OK)
-
+        self.response['response']['key'] = response_key
+        self.response['message'] = response_value
+        return Response(self.response, status=status.HTTP_201_CREATED)

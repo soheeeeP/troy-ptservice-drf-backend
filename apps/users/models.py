@@ -9,6 +9,7 @@ from imagekit.models import ImageSpecField
 from imagekit.processors import ResizeToFit
 
 from model_utils import Choices
+from utils.models import TimeStampedModel
 
 
 def set_img_path(instance, filename):
@@ -38,7 +39,7 @@ class CustomUserManager(UserManager):
         return self._create_user(email, password, **kwargs)
 
 
-class UserProfile(AbstractUser):
+class UserProfile(AbstractUser, TimeStampedModel):
     OAUTH_CHOICES = Choices(
         ('Google', 'google'),
         ('default', 'default')
@@ -62,6 +63,13 @@ class UserProfile(AbstractUser):
         blank=True,
         null=True,
         verbose_name='OAuth'
+    )
+    auth_sms = models.OneToOneField(
+        'oauth.AuthSMS',
+        on_delete=models.CASCADE,
+        blank=True,
+        null=True,
+        verbose_name='휴대폰 인증'
     )
     username = models.CharField(
         max_length=150,
@@ -176,7 +184,7 @@ class CoachProfile(models.Model):
         verbose_name_plural = verbose_name
 
 
-class BodyInfo(models.Model):
+class BodyInfo(TimeStampedModel):
     BODY_TYPE_CHOICES = Choices(
         ('inverted_triangle', '역삼각형'),
         ('triangle', '삼각형'),
@@ -206,11 +214,6 @@ class BodyInfo(models.Model):
         max_digits=5,
         decimal_places=2,
         verbose_name='몸무게'
-    )
-    created_at = models.DateField(
-        auto_now_add=True,
-        blank=True,
-        null=True
     )
 
     class Meta:
