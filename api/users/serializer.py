@@ -267,10 +267,13 @@ class UserProfileCreateUpdateSerializer(serializers.Serializer):
             auth_obj = auth_serializer.save()
 
             sms = validated_data.pop('auth_sms')
-            print(sms)
+            sms_obj = AuthSMS.objects.get(**sms)
+            if sms_obj.validation is not True:
+                raise ValidationError('휴대폰 인증이 완료되지 않았습니다.')
+
             user = UserProfile.objects.create(
                 oauth=auth_obj,
-                auth_sms=AuthSMS.objects.get(**sms),
+                auth_sms=sms_obj,
                 email=validated_data.pop('email'),
                 username=validated_data.pop('username'),
                 nickname=validated_data.pop('nickname'),

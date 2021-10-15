@@ -40,10 +40,11 @@ class AuthSMSSerializer(serializers.ModelSerializer):
 class AuthSMSCreateUpdateSerializer(serializers.ModelSerializer):
     phone_number = serializers.CharField(help_text='휴대폰 번호(11자리 숫자를 입력해주세요)')
     auth_number = serializers.CharField(help_text='인증 번호')
+    validation = serializers.BooleanField(help_text='인증 완료 여부')
 
     class Meta:
         model = AuthSMS
-        fields = ['phone_number', 'auth_number', 'created_at', 'updated_at']
+        fields = ['phone_number', 'auth_number', 'created_at', 'updated_at', 'validation']
 
     def create(self, validated_data):
         phone_number = validated_data.pop('phone_number', None)

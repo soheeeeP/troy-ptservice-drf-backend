@@ -116,7 +116,7 @@ class AuthSMSView(generics.CreateAPIView):
         data = json.loads(request.body)
         data['auth_number'] = str(randint(1000, 10000))     # 4자리수 인증번호 생성
 
-        sms_serializer = self.serializer_class(data=data)
+        sms_serializer = self.serializer_class(data=data, partial=True)
         sms_serializer.is_valid(raise_exception=True)
 
         sms_service = AuthSMSService()
