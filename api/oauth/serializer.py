@@ -7,7 +7,13 @@ from django.utils import timezone
 from apps.oauth.models import Auth, AuthSMS
 
 
-class AuthDefaultSerializer(serializers.Serializer):
+class AuthSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Auth
+        fields = ['oauth_type', 'oauth_token']
+
+
+class AuthValidateSerializer(serializers.Serializer):
     provider = serializers.ChoiceField(choices=['google', 'kakao', 'naver'], help_text='oauth provider')
     id_token = serializers.CharField(help_text='oauth token')
     oauth_token = serializers.CharField(help_text='oauth id')

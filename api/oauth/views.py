@@ -15,12 +15,12 @@ from utils.responses import OAuthErrorCollection as error_collection
 
 from apps.oauth.models import Auth, AuthSMS
 from api.oauth.services import AuthService, AuthSMSService, GoogleService
-from api.oauth.serializer import AuthDefaultSerializer, AuthSMSCreateUpdateSerializer
+from api.oauth.serializer import AuthValidateSerializer, AuthSMSCreateUpdateSerializer
 
 
 # access_token 및 id_token 권한인증(GET)
 class AuthView(generics.GenericAPIView, mixins.CreateModelMixin):
-    serializer_class = AuthDefaultSerializer
+    serializer_class = AuthValidateSerializer
     authentication_classes = []
     queryset = Auth.objects.all()
 

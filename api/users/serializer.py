@@ -17,7 +17,7 @@ from apps.users.models import UserProfile, TraineeProfile, CoachProfile, BodyInf
 from apps.oauth.models import Auth, AuthSMS
 from apps.centers.models import Center
 from api.centers.serializer import CenterSerializer
-from api.oauth.serializer import AuthCreateSerializer, AuthSMSSerializer, AuthSMSCreateUpdateSerializer
+from api.oauth.serializer import AuthSerializer, AuthCreateSerializer, AuthSMSSerializer, AuthSMSCreateUpdateSerializer
 from api.tags.serializer import HashTagSerializer, HashTagCreateSerializer
 from api.programs.serializer import EvaluationSerializer
 
@@ -185,11 +185,12 @@ class CoachProfileCreateUpdateSerializer(serializers.ModelSerializer):
 
 
 class UserProfileSerializer(serializers.ModelSerializer):
+    oauth = AuthSerializer()
     auth_sms = AuthSMSSerializer()
 
     class Meta:
         model = UserProfile
-        fields = ['id', 'email', 'username', 'nickname', 'gender', 'birth', 'profile_img', 'auth_sms', 'user_type']
+        fields = ['id', 'email', 'username', 'nickname', 'gender', 'birth', 'profile_img', 'oauth', 'auth_sms', 'user_type']
 
     def validate(self, attrs):
         super(UserProfileSerializer, self).validate(attrs)
