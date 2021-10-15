@@ -157,18 +157,18 @@ class CoachProfileCreateUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = CoachProfile
         fields = '__all__'
-        list_serializer_class = CoachListSerializer
 
     def create(self, validated_data):
         center = validated_data.pop('center')
         center_obj = Center.objects.create(**center)
         tags_obj = HashTagCreateSerializer().bulk_create_tags_list(tags=validated_data.pop('specialty'))
 
-        coach = CoachProfile.objects.create(center=center_obj)
-        coach.specialty.add(*tags_obj)
-        coach.save()
-
-        return coach, coach.pk
+        with transaction.atomic():
+            coach = CoachProfile.objects.create(**validated_data)
+            coach.center = center_obj
+            coach.specialty.add(*tags_obj)
+            coach.save()
+            return coach, coach.pk
 
     def update(self, instance, validated_data):
         center = validated_data.pop('center', None)
