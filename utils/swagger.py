@@ -2,6 +2,15 @@
 from drf_yasg import openapi
 
 
+class ProfileParamCollection(object):
+    pk = openapi.Parameter(
+        'pk',
+        openapi.IN_PATH,
+        description='프로필을 조회할 사용자의 \'pk\'값을 URL에 전달해주세요.',
+        type=openapi.TYPE_INTEGER
+    )
+
+
 class VerifyParamCollection(object):
     nickname = openapi.Parameter(
         'q',

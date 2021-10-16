@@ -19,6 +19,7 @@ from apps.programs.models import Program
 from api.programs.serializer import ProgramDetailSerializer
 
 from utils.responses import UserErrorCollection as error_collection
+from utils.swagger import ProfileParamCollection as profile_param_collection
 from utils.swagger import CoachListQueryParamCollection as coach_list_param_collection
 from utils.authentication import TroyJWTAUthentication
 
@@ -92,6 +93,7 @@ class UserProfileView(generics.RetrieveAPIView, mixins.UpdateModelMixin):
     permission_classes = (IsAuthenticated,)
     queryset = UserProfile.objects.all().select_related('trainee', 'coach')
     serializer_class = UserProfileSerializer
+    lookup_field = 'pk'
 
     success_response = openapi.Response(
         'USER_200_PROFILE_SUCCESS_RESPONSE',
@@ -108,9 +110,11 @@ class UserProfileView(generics.RetrieveAPIView, mixins.UpdateModelMixin):
         }
     )
     def get(self, request, *args, **kwargs):
-        user = JWTSerializer().get_user_by_token(
+        login_user = JWTSerializer().get_user_by_token(
             header=TroyJWTAUthentication().get_header(request=request)
         )
+
+        user = self.get_object()
         response = dict()
         response['user'] = self.serializer_class(instance=user).data
 
@@ -137,10 +141,11 @@ class UserProfileView(generics.RetrieveAPIView, mixins.UpdateModelMixin):
         return Response(response, status=status.HTTP_200_OK)
 
 
-class TraineeSubProfileView(generics.RetrieveAPIView):
+class TraineeProfileView(generics.RetrieveAPIView):
     permission_classes = (IsAuthenticated,)
-    queryset = TraineeProfile.objects.all()
+    queryset = UserProfile.objects.all()
     serializer_class = TraineeSubProfileSerializer
+    lookup_field = 'pk'
 
     success_response = openapi.Response(
         'USER_200_TRAINEE_PROFILE_SUCCESS_RESPONSE',
@@ -152,27 +157,30 @@ class TraineeSubProfileView(generics.RetrieveAPIView):
         responses={
             200: success_response,
             404:
-                error_collection.USER_404_TRAINEE_PROFILE_DOES_NOT_EXISTS.as_md()
+                error_collection.USER_404_TRAINEE_PROFILE_DOES_NOT_EXISTS.as_md() +
+                error_collection.USER_400_INVALID_USER_TYPE_ERROR.as_md()
         }
     )
     def get(self, request, *args, **kwargs):
-        user = JWTSerializer().get_user_by_token(
+        login_user = JWTSerializer().get_user_by_token(
             header=TroyJWTAUthentication().get_header(request=request)
         )
-        if user.is_staff:
-            return Response(None, status=status.HTTP_200_OK)
+
+        user = self.get_object()
+        user.check_valid_user_type(user_type='trainee')
+        trainee = user.get_user_type_attribute_obj()
 
         response = {
-            'body_info': self.serializer_class.get_body_info(obj=user.trainee)
+            'body_info': self.serializer_class.get_body_info(obj=trainee)
         }
         return Response(response, status=status.HTTP_200_OK)
 
 
-# 트레이너 세부 프로필 (GET)
-class CoachSubProfileView(generics.RetrieveAPIView):
+class CoachProfileView(generics.RetrieveAPIView):
     permission_classes = (IsAuthenticated,)
-    queryset = CoachProfile.objects.all()
+    queryset = UserProfile.objects.all()
     serializer_class = CoachSubProfileSerializer
+    lookup_field = 'pk'
 
     success_response = openapi.Response(
         'USER_200_COACH_PROFILE_SUCCESS_RESPONSE',
@@ -184,23 +192,27 @@ class CoachSubProfileView(generics.RetrieveAPIView):
         responses={
             200: success_response,
             404:
-                error_collection.USER_404_COACH_PROFILE_DOES_NOT_EXISTS.as_md()
+                error_collection.USER_404_COACH_PROFILE_DOES_NOT_EXISTS.as_md() +
+                error_collection.USER_400_INVALID_USER_TYPE_ERROR.as_md()
         }
     )
     def get(self, request, *args, **kwargs):
-        user = JWTSerializer().get_user_by_token(
+        login_user = JWTSerializer().get_user_by_token(
             header=TroyJWTAUthentication().get_header(request=request)
         )
-        if user.is_staff:
-            return Response(None, status=status.HTTP_200_OK)
+        user = self.get_object()
+        user.check_valid_user_type(user_type='coach')
+        coach = user.get_user_type_attribute_obj()
 
-        response = self.serializer_class(instance=user.coach).data
+        response = self.serializer_class(instance=coach).data
         return Response(response, status=status.HTTP_200_OK)
 
 
 class ProfileUpdateView(generics.UpdateAPIView):
     permission_classes = (IsAuthenticated,)
     serializer_class = UserProfileCreateUpdateSerializer
+    queryset = UserProfile.objects.select_related('trainee', 'coach').all()
+    lookup_field = 'pk'
 
     success_response = openapi.Response(
         'USER_200_PROFILE_PARTIAL_UPDATE_RESPONSE',
@@ -212,6 +224,7 @@ class ProfileUpdateView(generics.UpdateAPIView):
         responses={
             200: success_response,
             404:
+                error_collection.USER_400_PROFILE_UPDATE_INVALID_USER_ERROR.as_md() +
                 error_collection.USER_404_PROFILE_ATTRIBUTE_ERROR.as_md() +
                 error_collection.USER_404_COACH_PROFILE_DOES_NOT_EXISTS.as_md() +
                 error_collection.USER_404_TRAINEE_PROFILE_DOES_NOT_EXISTS.as_md() +
@@ -220,9 +233,13 @@ class ProfileUpdateView(generics.UpdateAPIView):
     )
     def patch(self, request, *args, **kwargs):
         data = json.loads(request.POST['data'])
-        user = JWTSerializer().get_user_by_token(
+        login_user = JWTSerializer().get_user_by_token(
             header=TroyJWTAUthentication().get_header(request=request)
         )
+        user = self.get_object()
+        if login_user.pk != user.pk:
+            raise ValidationError('다른 유저 객체의 프로필을 수정할 수 없습니다.')
+
         user_dict = UserService().set_user_profile_info(data=data, img=request.FILES.get('profile_img'))
         user_serializer = self.serializer_class(instance=user, data=user_dict, partial=True)
         user_serializer.is_valid(raise_exception=True)

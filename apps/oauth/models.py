@@ -6,7 +6,7 @@ from utils.models import TimeStampedModel
 
 class Auth(models.Model):
     OAUTH_CHOICES = Choices(
-        ('Google', 'google'),
+        ('google', 'google'),
         ('default', 'default')
     )
     oauth_type = models.CharField(
@@ -38,6 +38,10 @@ class AuthSMS(TimeStampedModel):
     auth_number = models.IntegerField(
         verbose_name='인증번호',
         max_length=4
+    )
+    validation = models.BooleanField(
+        verbose_name='인증여부',
+        default=False
     )
 
     class Meta:

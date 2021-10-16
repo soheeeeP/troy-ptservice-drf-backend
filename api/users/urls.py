@@ -9,12 +9,12 @@ urlpatterns = [
     path('login', LoginView.as_view(), name='login'),
 
     # 사용자 프로필 조회 URL
-    path('profile/main', UserProfileView.as_view(), name='mainprofile'),
-    path('profile/trainee/sub', TraineeSubProfileView.as_view(), name='trainee_subprofile'),
-    path('profile/coach/sub', CoachSubProfileView.as_view(), name='coach_subprofile'),
+    path('profile/<int:pk>/main', UserProfileView.as_view(), name='mainprofile'),
+    path('profile/<int:pk>/trainee', TraineeProfileView.as_view(), name='trainee_profile'),
+    path('profile/<int:pk>/coach', CoachProfileView.as_view(), name='coach_profile'),
 
     # 사용자 프로필 업데이트 URL
-    path('profile/edit', ProfileUpdateView.as_view(), name='edit_profile'),
+    path('profile/<int:pk>/edit', ProfileUpdateView.as_view(), name='edit_profile'),
 
     # 서비스 코치 list URL
     path('coach/all', CoachListView.as_view(), name='coach_all'),

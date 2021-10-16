@@ -7,7 +7,13 @@ from django.utils import timezone
 from apps.oauth.models import Auth, AuthSMS
 
 
-class AuthDefaultSerializer(serializers.Serializer):
+class AuthSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Auth
+        fields = ['oauth_type', 'oauth_token']
+
+
+class AuthValidateSerializer(serializers.Serializer):
     provider = serializers.ChoiceField(choices=['google', 'kakao', 'naver'], help_text='oauth provider')
     id_token = serializers.CharField(help_text='oauth token')
     oauth_token = serializers.CharField(help_text='oauth id')
@@ -40,10 +46,11 @@ class AuthSMSSerializer(serializers.ModelSerializer):
 class AuthSMSCreateUpdateSerializer(serializers.ModelSerializer):
     phone_number = serializers.CharField(help_text='휴대폰 번호(11자리 숫자를 입력해주세요)')
     auth_number = serializers.CharField(help_text='인증 번호')
+    validation = serializers.BooleanField(help_text='인증 완료 여부')
 
     class Meta:
         model = AuthSMS
-        fields = ['phone_number', 'auth_number', 'created_at', 'updated_at']
+        fields = ['phone_number', 'auth_number', 'created_at', 'updated_at', 'validation']
 
     def create(self, validated_data):
         phone_number = validated_data.pop('phone_number', None)
@@ -62,6 +69,7 @@ class AuthSMSCreateUpdateSerializer(serializers.ModelSerializer):
         time_diff = timezone.now() - instance.created_at
         if time_diff < datetime.timedelta(minutes=3):
             instance.updated_at = timezone.now()
+            instance.validation = True
             instance.save()
             return instance
         else:

@@ -9,6 +9,8 @@ from imagekit.models import ImageSpecField
 from imagekit.processors import ResizeToFit
 
 from model_utils import Choices
+from rest_framework.exceptions import NotFound
+
 from utils.models import TimeStampedModel
 
 
@@ -50,7 +52,8 @@ class UserProfile(AbstractUser, TimeStampedModel):
     )
     USER_CHOICES = Choices(
         ('trainee', '트레이니'),
-        ('coach', '코치')
+        ('coach', '코치'),
+        ('staff', '관리자'),
     )
     email = models.EmailField(
         db_index=True,
@@ -107,7 +110,7 @@ class UserProfile(AbstractUser, TimeStampedModel):
     )
     user_type = models.CharField(
         choices=USER_CHOICES,
-        default=USER_CHOICES.trainee,
+        default=USER_CHOICES.staff,
         max_length=10,
         verbose_name='회원종류'
     )
@@ -141,6 +144,23 @@ class UserProfile(AbstractUser, TimeStampedModel):
 
     def has_module_perms(self, app_label):
         return True
+
+    def check_valid_user_type(self, user_type):
+        flag = UserProfile.USER_CHOICES.__getattr__(user_type)
+        if self.user_type != flag:
+            raise NotFound(f'프로필을 조회할 수 있는 올바른 타입의 유저({user_type})가 아닙니다.')
+        return None
+
+    def get_user_type_attribute_obj(self):
+        try:
+            if self.user_type == UserProfile.USER_CHOICES.__getattr__('trainee'):
+                return self.trainee
+            elif self.user_type == UserProfile.USER_CHOICES.__getattr__('coach'):
+                return self.coach
+            else:
+                return None
+        except AttributeError:
+            raise NotFound(f'{self.user_type} 프로필이 존재하지 않습니다.')
 
 
 class TraineeProfile(models.Model):

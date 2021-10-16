@@ -17,7 +17,7 @@ from apps.users.models import UserProfile, TraineeProfile, CoachProfile, BodyInf
 from apps.oauth.models import Auth, AuthSMS
 from apps.centers.models import Center
 from api.centers.serializer import CenterSerializer
-from api.oauth.serializer import AuthCreateSerializer, AuthSMSSerializer, AuthSMSCreateUpdateSerializer
+from api.oauth.serializer import AuthSerializer, AuthCreateSerializer, AuthSMSSerializer, AuthSMSCreateUpdateSerializer
 from api.tags.serializer import HashTagSerializer, HashTagCreateSerializer
 from api.programs.serializer import EvaluationSerializer
 
@@ -157,18 +157,18 @@ class CoachProfileCreateUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = CoachProfile
         fields = '__all__'
-        list_serializer_class = CoachListSerializer
 
     def create(self, validated_data):
         center = validated_data.pop('center')
         center_obj = Center.objects.create(**center)
         tags_obj = HashTagCreateSerializer().bulk_create_tags_list(tags=validated_data.pop('specialty'))
 
-        coach = CoachProfile.objects.create(center=center_obj)
-        coach.specialty.add(*tags_obj)
-        coach.save()
-
-        return coach, coach.pk
+        with transaction.atomic():
+            coach = CoachProfile.objects.create(**validated_data)
+            coach.center = center_obj
+            coach.specialty.add(*tags_obj)
+            coach.save()
+            return coach, coach.pk
 
     def update(self, instance, validated_data):
         center = validated_data.pop('center', None)
@@ -185,11 +185,12 @@ class CoachProfileCreateUpdateSerializer(serializers.ModelSerializer):
 
 
 class UserProfileSerializer(serializers.ModelSerializer):
+    oauth = AuthSerializer()
     auth_sms = AuthSMSSerializer()
 
     class Meta:
         model = UserProfile
-        fields = ['id', 'email', 'username', 'nickname', 'gender', 'birth', 'profile_img', 'auth_sms', 'user_type']
+        fields = ['id', 'email', 'username', 'nickname', 'gender', 'birth', 'profile_img', 'oauth', 'auth_sms', 'user_type']
 
     def validate(self, attrs):
         super(UserProfileSerializer, self).validate(attrs)
@@ -267,10 +268,13 @@ class UserProfileCreateUpdateSerializer(serializers.Serializer):
             auth_obj = auth_serializer.save()
 
             sms = validated_data.pop('auth_sms')
-            print(sms)
+            sms_obj = AuthSMS.objects.get(**sms)
+            if sms_obj.validation is not True:
+                raise ValidationError('휴대폰 인증이 완료되지 않았습니다.')
+
             user = UserProfile.objects.create(
                 oauth=auth_obj,
-                auth_sms=AuthSMS.objects.get(**sms),
+                auth_sms=sms_obj,
                 email=validated_data.pop('email'),
                 username=validated_data.pop('username'),
                 nickname=validated_data.pop('nickname'),
@@ -295,33 +299,31 @@ class UserProfileCreateUpdateSerializer(serializers.Serializer):
     def update(self, instance, validated_data):
         sid = transaction.savepoint()
         try:
-            UserProfile.objects.update(
-                email=validated_data.pop('email', instance.email),
-                username=validated_data.pop('username', instance.username),
-                nickname=validated_data.pop('nickname', instance.nickname),
-                gender=validated_data.pop('gender', instance.gender),
-                birth=validated_data.pop('birth', instance.birth),
-                profile_img=validated_data.pop('profile_img', instance.profile_img),
-                updated_at=timezone.now()
-            )
+            instance.email = validated_data.pop('email', instance.email)
+            instance.username = validated_data.pop('username', instance.username)
+            instance.nickname = validated_data.pop('nickname', instance.nickname)
+            instance.gender = validated_data.pop('gender', instance.gender)
+            instance.birth = validated_data.pop('birth', instance.birth)
+            instance.profile_img = validated_data.pop('profile_img', instance.profile_img)
+            instance.save()
         except ValidationError:
             transaction.savepoint_rollback(sid)
-            raise ValidationError('UserProfile를 업데이트 하는 도중에 validation 오류가 발생했습니다.')
+            raise ValidationError('입력받은 정보로 프로필을 업데이트 할 수 없습니다.')
 
         user_type = instance.user_type
         if user_type == UserProfile.USER_CHOICES.trainee:
-            instance = instance.trainee
+            user_type_instance = instance.trainee
         else:
-            instance = instance.coach
+            user_type_instance = instance.coach
 
         profile_info = validated_data.pop(user_type, None)
         if profile_info:
             self.create_update_sub_profile(
-                instance=instance,
+                instance=user_type_instance,
                 user_type=user_type,
                 data=profile_info
             )
-        return instance, instance.pk
+        return instance
 
 
 class LoginSignUpResponseSerializer(serializers.Serializer):
