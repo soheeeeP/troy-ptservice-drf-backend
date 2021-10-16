@@ -45,6 +45,12 @@ class UserErrorCollection(object):
         message='올바르지 못한 회원가입 정보입니다.'
     )
 
+    USER_400_INVALID_USER_TYPE_ERROR = ErrorCollection(
+        response_code='USER_400_INVALID_USER_TYPE_ERROR',
+        status_code=status.HTTP_400_BAD_REQUEST,
+        message='프로필을 조회할 수 있는 올바른 타입의 유저(코치/트레이니)가 아닙니다.'
+    )
+
     USER_404_PROFILE_ATTRIBUTE_ERROR = ErrorCollection(
         response_code='USER_404_PROFILE_ATTRIBUTE_ERROR',
         status_code=status.HTTP_404_NOT_FOUND,
@@ -60,7 +66,7 @@ class UserErrorCollection(object):
     USER_404_TRAINEE_PROFILE_DOES_NOT_EXISTS = ErrorCollection(
         response_code='USER_404_TRAINEE_PROFILE_DOES_NOT_EXISTS',
         status_code=status.HTTP_404_NOT_FOUND,
-        message='트레이너 프로필이 존재하지 않습니다.'
+        message='트레이니 프로필이 존재하지 않습니다.'
     )
 
     USER_404_COACH_PROFILE_DOES_NOT_EXISTS = ErrorCollection(
@@ -68,6 +74,13 @@ class UserErrorCollection(object):
         status_code=status.HTTP_404_NOT_FOUND,
         message='코치 프로필이 존재하지 않습니다.'
     )
+
+    USER_400_PROFILE_UPDATE_INVALID_USER_ERROR = ErrorCollection(
+        response_code='USER_400_PROFILE_UPDATE_INVALID_USER_ERROR',
+        status_code=status.HTTP_400_BAD_REQUEST,
+        message='다른 유저 객체의 프로필을 수정할 수 없습니다.'
+    )
+
     USER_404_PROFILE_UPDATE_INVALID_DATA_ERROR = ErrorCollection(
         response_code='USER_404_PROFILE_UPDATE_INVALID_DATA_ERROR',
         status_code=status.HTTP_400_BAD_REQUEST,
