@@ -299,33 +299,31 @@ class UserProfileCreateUpdateSerializer(serializers.Serializer):
     def update(self, instance, validated_data):
         sid = transaction.savepoint()
         try:
-            UserProfile.objects.update(
-                email=validated_data.pop('email', instance.email),
-                username=validated_data.pop('username', instance.username),
-                nickname=validated_data.pop('nickname', instance.nickname),
-                gender=validated_data.pop('gender', instance.gender),
-                birth=validated_data.pop('birth', instance.birth),
-                profile_img=validated_data.pop('profile_img', instance.profile_img),
-                updated_at=timezone.now()
-            )
+            instance.email = validated_data.pop('email', instance.email)
+            instance.username = validated_data.pop('username', instance.username)
+            instance.nickname = validated_data.pop('nickname', instance.nickname)
+            instance.gender = validated_data.pop('gender', instance.gender)
+            instance.birth = validated_data.pop('birth', instance.birth)
+            instance.profile_img = validated_data.pop('profile_img', instance.profile_img)
+            instance.save()
         except ValidationError:
             transaction.savepoint_rollback(sid)
-            raise ValidationError('UserProfile를 업데이트 하는 도중에 validation 오류가 발생했습니다.')
+            raise ValidationError('입력받은 정보로 프로필을 업데이트 할 수 없습니다.')
 
         user_type = instance.user_type
         if user_type == UserProfile.USER_CHOICES.trainee:
-            instance = instance.trainee
+            user_type_instance = instance.trainee
         else:
-            instance = instance.coach
+            user_type_instance = instance.coach
 
         profile_info = validated_data.pop(user_type, None)
         if profile_info:
             self.create_update_sub_profile(
-                instance=instance,
+                instance=user_type_instance,
                 user_type=user_type,
                 data=profile_info
             )
-        return instance, instance.pk
+        return instance
 
 
 class LoginSignUpResponseSerializer(serializers.Serializer):

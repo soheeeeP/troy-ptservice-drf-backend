@@ -6,7 +6,7 @@ from utils.models import TimeStampedModel
 
 class Auth(models.Model):
     OAUTH_CHOICES = Choices(
-        ('Google', 'google'),
+        ('google', 'google'),
         ('default', 'default')
     )
     oauth_type = models.CharField(
